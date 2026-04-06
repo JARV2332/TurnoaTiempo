@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { insertarPuntoRuta, eliminarPuntoRuta } from '@/app/encargado/procesiones/data-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -43,25 +43,19 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
     if (!newPunto.direccion.trim() || !newPunto.lat || !newPunto.lng) return
     
     setIsLoading(true)
-    const supabase = createClient()
-    
-    const puntosDelTipo = puntos.filter(p => p.tipo === newPunto.tipo)
-    
-    const { data, error } = await supabase
-      .from('puntos_ruta')
-      .insert({
-        procesion_id: procesionId,
-        direccion: newPunto.direccion,
-        tipo: newPunto.tipo,
-        lat: parseFloat(newPunto.lat),
-        lng: parseFloat(newPunto.lng),
-        orden: puntosDelTipo.length,
-      })
-      .select()
-      .single()
-    
-    if (!error && data) {
-      setPuntos([...puntos, data])
+    const puntosDelTipo = puntos.filter((p) => p.tipo === newPunto.tipo)
+
+    const res = await insertarPuntoRuta({
+      procesionId,
+      direccion: newPunto.direccion.trim(),
+      tipo: newPunto.tipo,
+      lat: parseFloat(newPunto.lat),
+      lng: parseFloat(newPunto.lng),
+      orden: puntosDelTipo.length,
+    })
+
+    if (res.ok && res.punto) {
+      setPuntos([...puntos, res.punto])
       setNewPunto({ direccion: '', tipo: newPunto.tipo, lat: '', lng: '' })
     }
     
@@ -79,17 +73,10 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
   }
 
   const handleDeletePunto = async (id: string) => {
-    const supabase = createClient()
-    
-    const { error } = await supabase
-      .from('puntos_ruta')
-      .delete()
-      .eq('id', id)
-    
-    if (!error) {
-      setPuntos(puntos.filter(p => p.id !== id))
+    const res = await eliminarPuntoRuta(id, procesionId)
+    if (res.ok) {
+      setPuntos(puntos.filter((p) => p.id !== id))
     }
-    
     router.refresh()
   }
 

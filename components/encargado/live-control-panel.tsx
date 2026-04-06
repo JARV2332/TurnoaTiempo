@@ -1,8 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import {
+  iniciarProcesion,
+  finalizarProcesion,
+  aplicarTurnoProcesion,
+  actualizarMarchaProcesion,
+} from '@/app/encargado/control/actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -39,7 +44,6 @@ const puntosIdaOrdenados = (puntos: PuntoRuta[]) =>
 
 export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControlPanelProps) {
   const router = useRouter()
-  const supabase = createClient()
   const puntosIda = puntosIdaOrdenados(puntosRuta)
   const totalTurnos = Math.max(procesion.total_turnos || 1, puntosIda.length - 1, 1)
 
@@ -63,17 +67,14 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
     const lat = punto && punto.lat != null ? punto.lat : null
     const lng = punto && punto.lng != null ? punto.lng : null
 
-    const { error } = await supabase
-      .from('procesiones')
-      .update({
-        turno_actual: num,
-        marcha_actual: marchaParaTurno,
-        ubicacion_lat: lat,
-        ubicacion_lng: lng,
-      })
-      .eq('id', procesion.id)
+    const res = await aplicarTurnoProcesion(procesion.id, {
+      turno_actual: num,
+      marcha_actual: marchaParaTurno,
+      ubicacion_lat: lat,
+      ubicacion_lng: lng,
+    })
 
-    if (!error) {
+    if (res.ok) {
       setMarchaActual(marchaParaTurno ?? '')
       // Ocultar el turno ya usado: limpiamos selección y la UI mostrará solo pendientes
       setTurnoSeleccionado('')
@@ -84,28 +85,16 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
 
   const handleStartProcesion = async () => {
     setIsUpdating(true)
-    const { error } = await supabase
-      .from('procesiones')
-      .update({ estado: 'en_curso' })
-      .eq('id', procesion.id)
-    if (!error) setIsLive(true)
+    const res = await iniciarProcesion(procesion.id)
+    if (res.ok) setIsLive(true)
     setIsUpdating(false)
     router.refresh()
   }
 
   const handleStopProcesion = async () => {
     setIsUpdating(true)
-    const { error } = await supabase
-      .from('procesiones')
-      .update({
-        estado: 'finalizada',
-        ubicacion_lat: null,
-        ubicacion_lng: null,
-        turno_actual: null,
-        marcha_actual: null,
-      })
-      .eq('id', procesion.id)
-    if (!error) {
+    const res = await finalizarProcesion(procesion.id)
+    if (res.ok) {
       setIsLive(false)
       router.push('/encargado')
     }
@@ -115,10 +104,7 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
 
   const handleMarchaChange = async (value: string) => {
     setMarchaActual(value)
-    await supabase
-      .from('procesiones')
-      .update({ marcha_actual: value || null })
-      .eq('id', procesion.id)
+    await actualizarMarchaProcesion(procesion.id, value || null)
     router.refresh()
   }
 

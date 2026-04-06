@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { guardarProcesion } from '@/app/encargado/procesiones/data-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,33 +35,19 @@ export function ProcesionForm({ procesion, hermandades, userHermandadId, isSuper
     setIsLoading(true)
     setError(null)
 
-    const supabase = createClient()
     const formData = new FormData(e.currentTarget)
 
     try {
-      const data = {
+      const res = await guardarProcesion({
+        id: procesion?.id,
         nombre: formData.get('nombre') as string,
         descripcion: (formData.get('descripcion') as string) || null,
         fecha: (formData.get('fecha') as string) || new Date().toISOString().slice(0, 10),
         hermandad_id: hermandadId,
-        total_turnos: 1,
         estado: procesion?.estado || 'programada',
-      }
+      })
 
-      if (procesion) {
-        const { error } = await supabase
-          .from('procesiones')
-          .update(data)
-          .eq('id', procesion.id)
-
-        if (error) throw error
-      } else {
-        const { error } = await supabase
-          .from('procesiones')
-          .insert(data)
-
-        if (error) throw error
-      }
+      if (!res.ok) throw new Error(res.error)
 
       router.push('/encargado')
       router.refresh()

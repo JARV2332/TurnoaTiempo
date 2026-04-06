@@ -1,12 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import {
+  insertarMarcha,
+  eliminarMarcha,
+  actualizarOrdenMarchas,
+} from '@/app/encargado/procesiones/data-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Music, GripVertical, Trash2, Save } from 'lucide-react'
+import { Plus, Music, GripVertical, Trash2 } from 'lucide-react'
 import type { Marcha } from '@/lib/types'
 
 interface MarchasManagerProps {
@@ -24,21 +28,15 @@ export function MarchasManager({ procesionId, initialMarchas }: MarchasManagerPr
     if (!newMarcha.nombre.trim()) return
     
     setIsLoading(true)
-    const supabase = createClient()
-    
-    const { data, error } = await supabase
-      .from('marchas')
-      .insert({
-        procesion_id: procesionId,
-        nombre: newMarcha.nombre,
-        autor: newMarcha.autor || null,
-        orden: marchas.length,
-      })
-      .select()
-      .single()
-    
-    if (!error && data) {
-      setMarchas([...marchas, data])
+    const res = await insertarMarcha({
+      procesionId,
+      nombre: newMarcha.nombre.trim(),
+      autor: newMarcha.autor || null,
+      orden: marchas.length,
+    })
+
+    if (res.ok && res.marcha) {
+      setMarchas([...marchas, res.marcha])
       setNewMarcha({ nombre: '', autor: '' })
     }
     
@@ -47,17 +45,10 @@ export function MarchasManager({ procesionId, initialMarchas }: MarchasManagerPr
   }
 
   const handleDeleteMarcha = async (id: string) => {
-    const supabase = createClient()
-    
-    const { error } = await supabase
-      .from('marchas')
-      .delete()
-      .eq('id', id)
-    
-    if (!error) {
-      setMarchas(marchas.filter(m => m.id !== id))
+    const res = await eliminarMarcha(id, procesionId)
+    if (res.ok) {
+      setMarchas(marchas.filter((m) => m.id !== id))
     }
-    
     router.refresh()
   }
 
@@ -70,14 +61,10 @@ export function MarchasManager({ procesionId, initialMarchas }: MarchasManagerPr
     const updated = newMarchas.map((m, i) => ({ ...m, orden: i }))
     setMarchas(updated)
     
-    // Save to database
-    const supabase = createClient()
-    for (const marcha of updated) {
-      await supabase
-        .from('marchas')
-        .update({ orden: marcha.orden })
-        .eq('id', marcha.id)
-    }
+    await actualizarOrdenMarchas(
+      procesionId,
+      updated.map((m) => ({ id: m.id, orden: m.orden })),
+    )
     
     router.refresh()
   }
