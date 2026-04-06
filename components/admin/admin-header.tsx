@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { createClient } from '@/lib/supabase/client'
+import { cerrarSesion } from '@/app/auth/actions'
 import { useRouter } from 'next/navigation'
 import { LogOut, User, Menu, Shield, Church, Users, Settings, LayoutDashboard } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
@@ -32,8 +32,7 @@ export function AdminHeader({ userName }: AdminHeaderProps) {
   const pathname = usePathname()
 
   const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    await cerrarSesion()
     router.push('/auth/login')
   }
 

@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { createClient } from '@/lib/supabase/client'
+import { cerrarSesion } from '@/app/auth/actions'
 import { useRouter } from 'next/navigation'
 import { LogOut, User, Radio, Shield } from 'lucide-react'
 import Link from 'next/link'
@@ -23,8 +23,7 @@ export function EncargadoHeader({ userName, hermandadNombre, isSuperAdmin }: Enc
   const router = useRouter()
 
   const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    await cerrarSesion()
     router.push('/auth/login')
   }
 

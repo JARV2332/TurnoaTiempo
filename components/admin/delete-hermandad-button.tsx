@@ -13,7 +13,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Trash2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { eliminarHermandad } from '@/app/admin/admin-actions'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -28,17 +28,10 @@ export function DeleteHermandadButton({ hermandadId, hermandadNombre }: DeleteHe
 
   const handleDelete = async () => {
     setIsDeleting(true)
-    const supabase = createClient()
-    
-    const { error } = await supabase
-      .from('hermandades')
-      .delete()
-      .eq('id', hermandadId)
-    
-    if (!error) {
+    const res = await eliminarHermandad(hermandadId)
+    if (res.ok) {
       router.refresh()
     }
-    
     setIsDeleting(false)
   }
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { guardarHermandad } from '@/app/admin/admin-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -38,52 +38,14 @@ export function HermandadForm({ hermandad }: HermandadFormProps) {
     setIsLoading(true)
     setError(null)
 
-    const supabase = createClient()
     const formData = new FormData(e.currentTarget)
+    if (escudoFile) {
+      formData.set('escudo', escudoFile)
+    }
 
     try {
-      let escudo_url = hermandad?.escudo_url || null
-
-      // Upload escudo if new file selected
-      if (escudoFile) {
-        const fileExt = escudoFile.name.split('.').pop()
-        const fileName = `${Date.now()}.${fileExt}`
-        const filePath = `escudos/${fileName}`
-
-        const { error: uploadError } = await supabase.storage
-          .from('escudos')
-          .upload(filePath, escudoFile)
-
-        if (uploadError) throw uploadError
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('escudos')
-          .getPublicUrl(filePath)
-
-        escudo_url = publicUrl
-      }
-
-      const data = {
-        nombre: formData.get('nombre') as string,
-        escudo_url,
-      }
-
-      if (hermandad) {
-        // Update existing
-        const { error } = await supabase
-          .from('hermandades')
-          .update(data)
-          .eq('id', hermandad.id)
-
-        if (error) throw error
-      } else {
-        // Create new
-        const { error } = await supabase
-          .from('hermandades')
-          .insert(data)
-
-        if (error) throw error
-      }
+      const res = await guardarHermandad(formData)
+      if (!res.ok) throw new Error(res.error)
 
       router.push('/admin/hermandades')
       router.refresh()
@@ -96,6 +58,13 @@ export function HermandadForm({ hermandad }: HermandadFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+      {hermandad && (
+        <>
+          <input type="hidden" name="hermandad_id" value={hermandad.id} />
+          <input type="hidden" name="existing_escudo_url" value={hermandad.escudo_url ?? ''} />
+        </>
+      )}
+      {!hermandad && <input type="hidden" name="existing_escudo_url" value="" />}
       <Card className="glass-card">
         <CardHeader>
           <CardTitle>Información de la Hermandad</CardTitle>

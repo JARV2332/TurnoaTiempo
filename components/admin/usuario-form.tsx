@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { actualizarPerfilUsuario } from '@/app/admin/admin-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,53 +35,40 @@ export function UsuarioForm({ usuario, hermandades, isNewUser = false }: Usuario
     setIsLoading(true)
     setError(null)
 
-    const supabase = createClient()
     const formData = new FormData(e.currentTarget)
 
     try {
       if (isNewUser) {
-        // Create new user with Supabase Auth
+        // signUp debe ir en el cliente: si se hace en el servidor con la sesión del admin,
+        // Supabase puede sustituir la sesión por la del usuario recién creado.
         const email = formData.get('email') as string
         const password = formData.get('password') as string
-
+        const supabase = createClient()
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: {
-              role,
-              hermandad_id: hermandadId || null,
-            },
+            data: { role, hermandad_id: hermandadId || null },
             emailRedirectTo: `${window.location.origin}/auth/login`,
           },
         })
-
         if (authError) throw authError
-
-        // Update profile with additional data
         if (authData.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: authData.user.id,
-              email,
-              role,
-              hermandad_id: hermandadId || null,
-            })
-
-          if (profileError) throw profileError
-        }
-      } else if (usuario) {
-        // Update existing user profile
-        const { error } = await supabase
-          .from('profiles')
-          .update({
+          const { error: profileError } = await supabase.from('profiles').upsert({
+            id: authData.user.id,
+            email,
             role,
             hermandad_id: hermandadId || null,
           })
-          .eq('id', usuario.id)
-
-        if (error) throw error
+          if (profileError) throw profileError
+        }
+      } else if (usuario) {
+        const res = await actualizarPerfilUsuario({
+          userId: usuario.id,
+          role: role as 'superadmin' | 'encargado',
+          hermandad_id: hermandadId || null,
+        })
+        if (!res.ok) throw new Error(res.error)
       }
 
       router.push('/admin/usuarios')

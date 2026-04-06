@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { eliminarProcesion, duplicarProcesion } from '@/app/encargado/procesiones/data-actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -38,86 +38,26 @@ export function ProcesionActions({ procesion }: ProcesionActionsProps) {
 
   const handleDelete = async () => {
     setIsDeleting(true)
-    const supabase = createClient()
-    
-    const { error } = await supabase
-      .from('procesiones')
-      .delete()
-      .eq('id', procesion.id)
-    
-    if (!error) {
+    const res = await eliminarProcesion(procesion.id)
+    if (res.ok) {
       router.push('/encargado')
       router.refresh()
     }
-    
     setIsDeleting(false)
   }
 
   const handleDuplicate = async () => {
     setIsDuplicating(true)
     setDupError(null)
-    const supabase = createClient()
 
     try {
-      // 1) Traer marchas y puntos de la procesión original
-      const [{ data: marchas, error: marchasError }, { data: puntos, error: puntosError }] =
-        await Promise.all([
-          supabase.from('marchas').select('*').eq('procesion_id', procesion.id).order('orden'),
-          supabase.from('puntos_ruta').select('*').eq('procesion_id', procesion.id).order('orden'),
-        ])
-
-      if (marchasError) throw marchasError
-      if (puntosError) throw puntosError
-
-      // 2) Crear la nueva procesión (reseteada para “reiniciar”)
-      const { data: nuevaProcesion, error: insertProcesionError } = await supabase
-        .from('procesiones')
-        .insert({
-          hermandad_id: procesion.hermandad_id,
-          nombre: dupNombre.trim() || `${procesion.nombre} (copia)`,
-          descripcion: procesion.descripcion ?? null,
-          fecha: dupFecha,
-          total_turnos: procesion.total_turnos ?? 1,
-          avatar_url: procesion.avatar_url ?? null,
-          turno_actual: 1,
-          marcha_actual: null,
-          ubicacion_lat: null,
-          ubicacion_lng: null,
-          transmitiendo: false,
-          estado: 'programada',
-        })
-        .select()
-        .single()
-
-      if (insertProcesionError) throw insertProcesionError
-
-      // 3) Copiar marchas
-      if (marchas && marchas.length > 0) {
-        const payload = marchas.map((m: any) => ({
-          procesion_id: nuevaProcesion.id,
-          nombre: m.nombre,
-          autor: m.autor ?? null,
-          orden: m.orden ?? 0,
-        }))
-        const { error } = await supabase.from('marchas').insert(payload)
-        if (error) throw error
-      }
-
-      // 4) Copiar puntos de ruta
-      if (puntos && puntos.length > 0) {
-        const payload = puntos.map((p: any) => ({
-          procesion_id: nuevaProcesion.id,
-          direccion: p.direccion,
-          lat: p.lat ?? null,
-          lng: p.lng ?? null,
-          orden: p.orden,
-          tipo: p.tipo,
-        }))
-        const { error } = await supabase.from('puntos_ruta').insert(payload)
-        if (error) throw error
-      }
-
-      router.push(`/encargado/procesiones/${nuevaProcesion.id}`)
+      const res = await duplicarProcesion({
+        sourceId: procesion.id,
+        nombre: dupNombre.trim() || `${procesion.nombre} (copia)`,
+        fecha: dupFecha,
+      })
+      if (!res.ok) throw new Error(res.error)
+      router.push(`/encargado/procesiones/${res.newId}`)
       router.refresh()
     } catch (e: unknown) {
       setDupError(e instanceof Error ? e.message : 'Error al duplicar la procesión')
