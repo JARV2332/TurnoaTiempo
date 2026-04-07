@@ -9,26 +9,22 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Turno en Tiempo Real | Seguimiento de Procesiones',
-  description: 'Plataforma de seguimiento en tiempo real de procesiones de Semana Santa. Visualiza el recorrido, turno actual y marcha sonando.',
-  generator: 'v0.app',
-  keywords: ['semana santa', 'procesiones', 'seguimiento', 'hermandades', 'cofradías'],
+  metadataBase: new URL('https://turnoatiempo.com'),
+  title: 'Turno a Tiempo | Seguimiento de procesiones en vivo',
+  description:
+    'Plataforma de seguimiento en tiempo real de procesiones. Recorrido en mapa, turno actual y marcha. Para cofradías y público.',
+  keywords: ['semana santa', 'procesiones', 'seguimiento', 'hermandades', 'cofradías', 'turno a tiempo'],
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: [{ url: '/turnoatiempo.jpg', type: 'image/jpeg' }],
+    apple: [{ url: '/turnoatiempo.jpg', type: 'image/jpeg' }],
+  },
+  openGraph: {
+    title: 'Turno a Tiempo',
+    description: 'Seguimiento de procesiones en mapa en tiempo real.',
+    url: 'https://turnoatiempo.com',
+    siteName: 'Turno a Tiempo',
+    locale: 'es',
+    type: 'website',
   },
 }
 
