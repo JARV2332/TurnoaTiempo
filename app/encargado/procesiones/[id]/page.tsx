@@ -47,6 +47,24 @@ export default async function ProcesionDetailPage({
     .eq('procesion_id', id)
     .order('orden')
 
+  const puntosIda = (puntosRuta || [])
+    .filter((p) => p.tipo === 'ida')
+    .sort((a, b) => a.orden - b.orden)
+  const puntosRegreso = (puntosRuta || [])
+    .filter((p) => p.tipo === 'regreso')
+    .sort((a, b) => a.orden - b.orden)
+
+  const turnosRuta = [
+    ...puntosIda.map((p, index) => ({
+      turno: index + 1,
+      direccion: p.direccion ? `Ida — ${p.direccion}` : 'Ida',
+    })),
+    ...puntosRegreso.map((p, index) => ({
+      turno: puntosIda.length + index + 1,
+      direccion: p.direccion ? `Regreso — ${p.direccion}` : 'Regreso',
+    })),
+  ]
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
@@ -118,7 +136,7 @@ export default async function ProcesionDetailPage({
         <TabsList className="glass">
           <TabsTrigger value="marchas" className="gap-2">
             <Music className="h-4 w-4" />
-            Marchas
+            Sones y Alabados
           </TabsTrigger>
           <TabsTrigger value="ruta" className="gap-2">
             <MapPin className="h-4 w-4" />
@@ -131,7 +149,12 @@ export default async function ProcesionDetailPage({
         </TabsList>
         
         <TabsContent value="marchas">
-          <MarchasManager procesionId={procesion.id} initialMarchas={marchas || []} />
+          <MarchasManager
+            procesionId={procesion.id}
+            initialMarchas={marchas || []}
+            totalTurnos={procesion.total_turnos || 1}
+            turnosRuta={turnosRuta}
+          />
         </TabsContent>
         
         <TabsContent value="ruta">

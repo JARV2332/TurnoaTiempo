@@ -94,8 +94,8 @@ BEGIN
     SELECT nombre, autor, row_number() OVER (ORDER BY random()) - 1 AS orden
     FROM seed_marchas
   )
-  INSERT INTO public.marchas (procesion_id, nombre, autor, orden)
-  SELECT v_procesion_id, nombre, autor, orden
+  INSERT INTO public.marchas (procesion_id, nombre, autor, orden, turno)
+  SELECT v_procesion_id, nombre, autor, orden, orden + 1
   FROM randomized;
 
   RAISE NOTICE 'Seed OK. Hermandad="%", Procesión="%", Puntos=% , Turnos=%',

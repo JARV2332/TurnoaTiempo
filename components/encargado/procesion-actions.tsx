@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { eliminarProcesion, duplicarProcesion } from '@/app/encargado/procesiones/data-actions'
+import { eliminarProcesion, duplicarProcesion, guardarProcesion } from '@/app/encargado/procesiones/data-actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +22,7 @@ import {
 import { Trash2, ExternalLink, AlertTriangle, Copy } from 'lucide-react'
 import Link from 'next/link'
 import type { Procesion } from '@/lib/types'
+import { formatearFechaISO } from '@/lib/fecha'
 
 interface ProcesionActionsProps {
   procesion: Procesion
@@ -28,6 +30,11 @@ interface ProcesionActionsProps {
 
 export function ProcesionActions({ procesion }: ProcesionActionsProps) {
   const router = useRouter()
+  const [isSaving, setIsSaving] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editNombre, setEditNombre] = useState(procesion.nombre || '')
+  const [editFecha, setEditFecha] = useState(procesion.fecha ? procesion.fecha.slice(0, 10) : '')
+  const [editDescripcion, setEditDescripcion] = useState(procesion.descripcion || '')
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDuplicating, setIsDuplicating] = useState(false)
   const [dupNombre, setDupNombre] = useState(`${procesion.nombre} (copia)`)
@@ -66,8 +73,83 @@ export function ProcesionActions({ procesion }: ProcesionActionsProps) {
     }
   }
 
+  const handleSave = async () => {
+    setIsSaving(true)
+    setEditError(null)
+
+    try {
+      const res = await guardarProcesion({
+        id: procesion.id,
+        nombre: editNombre.trim(),
+        descripcion: editDescripcion.trim() || null,
+        fecha: editFecha,
+        hermandad_id: procesion.hermandad_id,
+        estado: procesion.estado,
+      })
+      if (!res.ok) throw new Error(res.error)
+      router.refresh()
+    } catch (e: unknown) {
+      setEditError(e instanceof Error ? e.message : 'Error al actualizar la procesion')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle>Editar datos</CardTitle>
+          <CardDescription>
+            Modifica nombre, fecha y descripcion de la procesion
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-nombre">Nombre</Label>
+              <Input
+                id="edit-nombre"
+                value={editNombre}
+                onChange={(e) => setEditNombre(e.target.value)}
+                className="bg-input/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-fecha">Fecha</Label>
+              <Input
+                id="edit-fecha"
+                type="date"
+                value={editFecha}
+                onChange={(e) => setEditFecha(e.target.value)}
+                className="bg-input/50"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-descripcion">Descripcion</Label>
+            <Textarea
+              id="edit-descripcion"
+              value={editDescripcion}
+              onChange={(e) => setEditDescripcion(e.target.value)}
+              className="bg-input/50 min-h-20"
+              placeholder="Descripcion opcional"
+            />
+          </div>
+          {editError && (
+            <p className="text-sm text-destructive bg-destructive/10 p-2 rounded-md">
+              {editError}
+            </p>
+          )}
+          <Button
+            onClick={handleSave}
+            disabled={isSaving || !editNombre.trim() || !editFecha}
+          >
+            {isSaving ? 'Guardando...' : 'Guardar cambios'}
+          </Button>
+        </CardContent>
+      </Card>
+
       <Card className="glass-card">
         <CardHeader>
           <CardTitle>Información de la Procesión</CardTitle>
@@ -85,7 +167,7 @@ export function ProcesionActions({ procesion }: ProcesionActionsProps) {
               <p className="text-sm text-muted-foreground">Fecha</p>
               <p className="font-medium">
                 {procesion.fecha 
-                  ? new Date(procesion.fecha).toLocaleDateString('es-ES', {
+                  ? formatearFechaISO(procesion.fecha, {
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',

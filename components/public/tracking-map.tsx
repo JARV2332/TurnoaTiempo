@@ -288,6 +288,16 @@ export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapPro
 
   const addRouteMarkers = (maplibregl: any) => {
     const withCoords = puntosRuta.filter(p => p.lat != null && p.lng != null)
+    const puntosIda = withCoords
+      .filter((p) => p.tipo === 'ida')
+      .sort((a, b) => a.orden - b.orden)
+    const puntosRegreso = withCoords
+      .filter((p) => p.tipo === 'regreso')
+      .sort((a, b) => a.orden - b.orden)
+    const mapaTurnos = new Map<string, number>()
+    puntosIda.forEach((p, idx) => mapaTurnos.set(p.id, idx + 1))
+    puntosRegreso.forEach((p, idx) => mapaTurnos.set(p.id, puntosIda.length + idx + 1))
+
     withCoords.forEach((punto) => {
       const el = document.createElement('div')
       el.className = 'route-marker'
@@ -305,7 +315,7 @@ export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapPro
         color: ${punto.tipo === 'ida' ? 'white' : '#1f2937'};
         cursor: pointer;
       `
-      el.innerHTML = `${withCoords.filter(p => p.tipo === punto.tipo).findIndex(p => p.id === punto.id) + 1}`
+      el.innerHTML = `${mapaTurnos.get(punto.id) ?? 0}`
       new maplibregl.Marker({ element: el })
         .setLngLat([punto.lng!, punto.lat!])
         .setPopup(

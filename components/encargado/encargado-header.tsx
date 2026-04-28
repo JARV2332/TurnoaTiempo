@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -21,6 +22,11 @@ interface EncargadoHeaderProps {
 
 export function EncargadoHeader({ userName, hermandadNombre, isSuperAdmin }: EncargadoHeaderProps) {
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSignOut = async () => {
     await cerrarSesion()
@@ -51,26 +57,35 @@ export function EncargadoHeader({ userName, hermandadNombre, isSuperAdmin }: Enc
           </Button>
         )}
         
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/20">
-                <User className="h-4 w-4 text-secondary" />
-              </div>
-              <span className="hidden sm:inline-block text-sm">{userName}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem asChild>
-              <Link href="/">Ver sitio público</Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
-              <LogOut className="mr-2 h-4 w-4" />
-              Cerrar Sesión
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {mounted ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/20">
+                  <User className="h-4 w-4 text-secondary" />
+                </div>
+                <span className="hidden sm:inline-block text-sm">{userName}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link href="/">Ver sitio público</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar Sesión
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button variant="ghost" className="gap-2" disabled>
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/20">
+              <User className="h-4 w-4 text-secondary" />
+            </div>
+            <span className="hidden sm:inline-block text-sm">{userName}</span>
+          </Button>
+        )}
       </div>
     </header>
   )

@@ -17,6 +17,7 @@ import {
 import { Plus, MapPin, GripVertical, Trash2, Navigation } from 'lucide-react'
 import type { Marcha, PuntoRuta } from '@/lib/types'
 import { RutaMapEditor } from './ruta-map-editor'
+import { obtenerPiezaPorTurno } from '@/lib/musica'
 
 interface RutaManagerProps {
   procesionId: string
@@ -99,6 +100,7 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
 
   const puntosIda = puntos.filter(p => p.tipo === 'ida').sort((a, b) => a.orden - b.orden)
   const puntosRegreso = puntos.filter(p => p.tipo === 'regreso').sort((a, b) => a.orden - b.orden)
+  const totalIda = puntosIda.length
 
   return (
     <div className="space-y-4">
@@ -234,7 +236,13 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
             Añadir Punto
           </Button>
           <p className="text-xs text-muted-foreground">
-            Turno asignado automáticamente por orden dentro de {newPunto.tipo}. Marcha sugerida: {marchas.length ? marchas[(puntos.filter(p => p.tipo === newPunto.tipo).length) % marchas.length]?.nombre : '—'}
+            Turno asignado automaticamente por orden dentro de {newPunto.tipo}. Son/alabado sugerido:{' '}
+            {obtenerPiezaPorTurno(
+              marchas,
+              newPunto.tipo === 'ida'
+                ? puntos.filter((p) => p.tipo === 'ida').length + 1
+                : totalIda + puntos.filter((p) => p.tipo === 'regreso').length + 1,
+            )?.nombre || '—'}
           </p>
         </CardContent>
       </Card>
@@ -264,7 +272,7 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
                     </p>
                     {marchas.length > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Marcha sugerida: {marchas[index % marchas.length]?.nombre}
+                        Son/alabado sugerido: {obtenerPiezaPorTurno(marchas, index + 1)?.nombre || '—'}
                       </p>
                     )}
                   </div>
@@ -312,7 +320,7 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
                     </p>
                     {marchas.length > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Marcha sugerida: {marchas[index % marchas.length]?.nombre}
+                        Son/alabado sugerido: {obtenerPiezaPorTurno(marchas, totalIda + index + 1)?.nombre || '—'}
                       </p>
                     )}
                   </div>

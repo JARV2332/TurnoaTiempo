@@ -44,6 +44,7 @@ export interface Marcha {
   nombre: string
   autor: string | null
   orden: number
+  turno: number | null
 }
 
 export interface PuntoRuta {

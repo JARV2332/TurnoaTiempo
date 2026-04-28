@@ -37,6 +37,7 @@ En el panel de Supabase: **SQL Editor → New query**. Ejecuta **cada script en 
 Si ya tenías la base creada antes de que se añadieran `estado` y `descripcion` a `procesiones`, ejecuta además:
 
 5. **005_add_estado_descripcion.sql** – Añade las columnas `estado` y `descripcion` a la tabla `procesiones`.
+6. **006_add_turno_to_marchas.sql** – Añade la columna `turno` en `marchas` y rellena datos existentes.
 
 Si algún script da error (por ejemplo “relation already exists”), puedes ignorar ese paso si ya lo habías ejecutado antes.
 
@@ -64,7 +65,7 @@ En SQL Editor puedes insertar un usuario en `auth.users` y su fila en `profiles`
 | `hermandades` | Hermandades (nombre, escudo). |
 | `profiles` | Usuarios y roles (`superadmin` / `encargado`) y relación con hermandad. |
 | `procesiones` | Procesiones (hermandad, nombre, fecha, turnos, ubicación, etc.). |
-| `marchas` | Marchas de cada procesión (nombre, autor, orden). |
+| `marchas` | Sones/alabados por procesión (nombre, autor, orden, turno). |
 | `puntos_ruta` | Puntos de la ruta por procesión (dirección, lat/lng, tipo ida/regreso). |
 
 Storage: buckets `escudos` y `avatares` para imágenes.
@@ -97,7 +98,7 @@ Para conectar y probar, aquí tienes qué usa cada formulario y a qué tabla/API
 | Formulario | Ruta | Campos | Tabla / recurso |
 |------------|------|--------|------------------|
 | **Procesión (crear/editar)** | `/encargado/procesiones/nueva`, `/encargado/procesiones/[id]` | `hermandad_id` (solo si superadmin), `nombre`, `fecha` | Tabla `procesiones` (`nombre`, `fecha`, `hermandad_id`, `total_turnos: 1`). |
-| **Marchas** | En página de detalle de procesión | Añadir: `nombre`, `autor` (opcional). Lista con orden, eliminar, reordenar. | Tabla `marchas` (`procesion_id`, `nombre`, `autor`, `orden`). |
+| **Sones y alabados** | En página de detalle de procesión | Añadir uno o varios nombres (uno por línea), `autor` (opcional), `turno inicial`. | Tabla `marchas` (`procesion_id`, `nombre`, `autor`, `orden`, `turno`). |
 | **Puntos de ruta** | En página de detalle de procesión | Añadir: `direccion`, `tipo` (ida/regreso), `lat`, `lng`. Opción “Usar mi ubicación”. | Tabla `puntos_ruta` (`procesion_id`, `direccion`, `tipo`, `lat`, `lng`, `orden`). |
 
 ### Cómo probar todo

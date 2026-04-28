@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, MapPin, Radio, Calendar, Play, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { formatearFechaISO } from '@/lib/fecha'
 
 export default async function EncargadoDashboardPage() {
   const supabase = await createClient()
@@ -107,7 +108,7 @@ export default async function EncargadoDashboardPage() {
                   <CardTitle className="text-base">{procesion.nombre}</CardTitle>
                   <CardDescription>
                     {procesion.fecha 
-                      ? new Date(procesion.fecha).toLocaleDateString('es-ES', { 
+                      ? formatearFechaISO(procesion.fecha, {
                           weekday: 'long', 
                           year: 'numeric', 
                           month: 'long', 
@@ -159,7 +160,7 @@ export default async function EncargadoDashboardPage() {
                   <CardTitle className="text-base">{procesion.nombre}</CardTitle>
                   <CardDescription>
                     {procesion.fecha 
-                      ? new Date(procesion.fecha).toLocaleDateString('es-ES')
+                      ? formatearFechaISO(procesion.fecha)
                       : 'Sin fecha'}
                   </CardDescription>
                 </CardHeader>
