@@ -78,8 +78,12 @@ CREATE TABLE IF NOT EXISTS marchas (
   procesion_id UUID NOT NULL REFERENCES procesiones(id) ON DELETE CASCADE,
   nombre TEXT NOT NULL,
   autor TEXT,
-  orden INTEGER DEFAULT 0
+  orden INTEGER DEFAULT 0,
+  turno INTEGER
 );
+
+ALTER TABLE marchas
+ADD COLUMN IF NOT EXISTS turno INTEGER;
 
 CREATE TABLE IF NOT EXISTS puntos_ruta (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

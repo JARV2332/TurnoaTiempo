@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useTheme } from 'next-themes'
 import type { PuntoRuta, Marcha } from '@/lib/types'
+import { obtenerPiezaPorTurno } from '@/lib/musica'
 
 type RutaTipo = 'ida' | 'regreso'
 
@@ -48,6 +49,10 @@ export function RutaMapEditor({
       .filter((p) => p.tipo === tipo && p.lat != null && p.lng != null)
       .sort((a, b) => a.orden - b.orden)
   }, [puntos, tipo])
+  const totalIda = useMemo(
+    () => puntos.filter((p) => p.tipo === 'ida' && p.lat != null && p.lng != null).length,
+    [puntos],
+  )
 
   const center = useMemo(() => {
     if (puntosOrdenados.length > 0) {
@@ -162,8 +167,8 @@ export function RutaMapEditor({
 
     const coords: [number, number][] = []
     puntosOrdenados.forEach((p, idx) => {
-      const turno = idx + 1
-      const marcha = marchas.length ? marchas[(turno - 1) % marchas.length] : null
+      const turno = tipo === 'ida' ? idx + 1 : totalIda + idx + 1
+      const marcha = obtenerPiezaPorTurno(marchas, turno)
 
       coords.push([p.lng!, p.lat!])
 
@@ -188,7 +193,7 @@ export function RutaMapEditor({
           <div style="font-weight:700;">Turno ${turno}</div>
           <div style="margin-top:4px;">${p.direccion || 'Punto'}</div>
           <div style="margin-top:6px; font-size:12px; color:#6b7280;">
-            Marcha: ${marcha ? `${marcha.nombre}${marcha.autor ? ` — ${marcha.autor}` : ''}` : '—'}
+            Son/Alabado: ${marcha ? `${marcha.nombre}${marcha.autor ? ` — ${marcha.autor}` : ''}` : '—'}
           </div>
         </div>
       `
@@ -209,7 +214,7 @@ export function RutaMapEditor({
         geometry: { type: 'LineString', coordinates: coords },
       })
     }
-  }, [marchas, puntosOrdenados, tipo])
+  }, [marchas, puntosOrdenados, tipo, totalIda])
 
   return (
     <div className={`relative w-full ${heightClassName} rounded-lg overflow-hidden border border-border/50`}>

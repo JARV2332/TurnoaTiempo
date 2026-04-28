@@ -116,6 +116,7 @@ export async function duplicarProcesion(input: {
       nombre: m.nombre,
       autor: m.autor ?? null,
       orden: m.orden ?? 0,
+      turno: m.turno ?? null,
     }))
     const { error } = await supabase.from('marchas').insert(payload)
     if (error) return { ok: false as const, error: error.message }
@@ -143,6 +144,7 @@ export async function insertarMarcha(input: {
   nombre: string
   autor: string | null
   orden: number
+  turno: number | null
 }) {
   const supabase = await createClient()
   const {
@@ -157,6 +159,7 @@ export async function insertarMarcha(input: {
       nombre: input.nombre,
       autor: input.autor,
       orden: input.orden,
+      turno: input.turno,
     })
     .select()
     .single()

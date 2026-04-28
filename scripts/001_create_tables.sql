@@ -76,7 +76,8 @@ CREATE TABLE IF NOT EXISTS marchas (
   procesion_id UUID NOT NULL REFERENCES procesiones(id) ON DELETE CASCADE,
   nombre TEXT NOT NULL,
   autor TEXT,
-  orden INTEGER DEFAULT 0
+  orden INTEGER DEFAULT 0,
+  turno INTEGER
 );
 
 -- Puntos de Ruta (Route checkpoints)

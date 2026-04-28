@@ -18,6 +18,7 @@ import {
 import Link from 'next/link'
 import type { Procesion, PuntoRuta } from '@/lib/types'
 import { TrackingMap } from './tracking-map'
+import { formatearFechaISO } from '@/lib/fecha'
 
 interface PublicTrackingViewProps {
   initialProcesion: Procesion & { hermandad?: { nombre: string; escudo_url?: string } }
@@ -162,11 +163,11 @@ export function PublicTrackingView({ initialProcesion, puntosRuta }: PublicTrack
                   </p>
                 </div>
                 
-                {/* Marcha */}
+                {/* Son/Alabado */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Music className="h-5 w-5 text-secondary" />
-                    Marcha sonando
+                    Son/Alabado sonando
                   </div>
                   <p className="text-xl font-semibold text-secondary text-balance">
                     {procesion.marcha_actual || 'Sin información'}
@@ -196,7 +197,7 @@ export function PublicTrackingView({ initialProcesion, puntosRuta }: PublicTrack
                 </p>
                 {procesion.fecha && procesion.estado === 'programada' && (
                   <p className="text-sm mt-2 text-primary">
-                    Programada para: {new Date(procesion.fecha).toLocaleDateString('es-ES', {
+                    Programada para: {formatearFechaISO(procesion.fecha, {
                       weekday: 'long',
                       day: 'numeric',
                       month: 'long'
