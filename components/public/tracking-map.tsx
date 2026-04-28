@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import type { Procesion, PuntoRuta } from '@/lib/types'
+import { construirTurnosRuta } from '@/lib/turnos'
 
 interface TrackingMapProps {
   procesion: Procesion
@@ -13,6 +14,7 @@ interface TrackingMapProps {
 // Default center (Seville, Spain - heart of Semana Santa)
 const DEFAULT_CENTER = { lat: 37.3891, lng: -5.9845 }
 const DEFAULT_ZOOM = 15
+const FOCUS_ZOOM = 18
 
 export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -38,10 +40,33 @@ export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapPro
     if (procesion.ubicacion_lat != null && procesion.ubicacion_lng != null) {
       return { lat: procesion.ubicacion_lat, lng: procesion.ubicacion_lng }
     }
+    const turnoActual = typeof procesion.turno_actual === 'number' ? procesion.turno_actual : 0
+    if (turnoActual > 0) {
+      const turnosRuta = construirTurnosRuta(puntosRuta)
+      const puntoTurno = turnosRuta.find((t) => t.turno === turnoActual)?.punto
+      if (puntoTurno?.lat != null && puntoTurno?.lng != null) {
+        return { lat: puntoTurno.lat, lng: puntoTurno.lng }
+      }
+    }
     if (puntosRuta.length > 0 && puntosRuta[0].lat != null && puntosRuta[0].lng != null) {
       return { lat: puntosRuta[0].lat, lng: puntosRuta[0].lng }
     }
     return DEFAULT_CENTER
+  }
+
+  const getInitialZoom = () => {
+    if (procesion.ubicacion_lat != null && procesion.ubicacion_lng != null) {
+      return FOCUS_ZOOM
+    }
+    const turnoActual = typeof procesion.turno_actual === 'number' ? procesion.turno_actual : 0
+    if (turnoActual > 0) {
+      const turnosRuta = construirTurnosRuta(puntosRuta)
+      const puntoTurno = turnosRuta.find((t) => t.turno === turnoActual)?.punto
+      if (puntoTurno?.lat != null && puntoTurno?.lng != null) {
+        return FOCUS_ZOOM
+      }
+    }
+    return DEFAULT_ZOOM
   }
 
   // (Re)inicia el mapa cuando cambia el tema para alternar tiles claros/oscuros.
@@ -50,6 +75,7 @@ export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapPro
     if (!el) return
 
     const initialCenter = getInitialCenter()
+    const initialZoom = getInitialZoom()
 
     const runInit = () => {
       const maplibregl = (window as any).maplibregl
@@ -75,7 +101,7 @@ export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapPro
           ],
         },
         center: [initialCenter.lng, initialCenter.lat],
-        zoom: DEFAULT_ZOOM,
+        zoom: initialZoom,
       })
 
       map.current.addControl(new maplibregl.NavigationControl(), 'top-right')

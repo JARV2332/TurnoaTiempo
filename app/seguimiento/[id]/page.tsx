@@ -51,16 +51,20 @@ export default async function SeguimientoPage({
   }
   
   // Get route points
-  const { data: puntosRuta } = await supabase
-    .from('puntos_ruta')
-    .select('*')
-    .eq('procesion_id', id)
-    .order('orden')
+  const [{ data: puntosRuta }, { data: marchas }] = await Promise.all([
+    supabase
+      .from('puntos_ruta')
+      .select('*')
+      .eq('procesion_id', id)
+      .order('orden'),
+    supabase.from('marchas').select('*').eq('procesion_id', id).order('orden'),
+  ])
 
   return (
     <PublicTrackingView 
       initialProcesion={procesion} 
       puntosRuta={puntosRuta || []} 
+      marchas={marchas || []}
     />
   )
 }
