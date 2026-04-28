@@ -16,18 +16,26 @@ import {
   Printer
 } from 'lucide-react'
 import Link from 'next/link'
-import type { Procesion, PuntoRuta } from '@/lib/types'
+import type { Procesion, PuntoRuta, Marcha } from '@/lib/types'
 import { TrackingMap } from './tracking-map'
 import { formatearFechaISO } from '@/lib/fecha'
+import { construirTurnosRuta } from '@/lib/turnos'
+import { obtenerPiezasPorTurno } from '@/lib/musica'
 
 interface PublicTrackingViewProps {
   initialProcesion: Procesion & { hermandad?: { nombre: string; escudo_url?: string } }
   puntosRuta: PuntoRuta[]
+  marchas: Marcha[]
 }
 
-export function PublicTrackingView({ initialProcesion, puntosRuta }: PublicTrackingViewProps) {
+export function PublicTrackingView({ initialProcesion, puntosRuta, marchas }: PublicTrackingViewProps) {
   const [procesion, setProcesion] = useState(initialProcesion)
   const [isPanelExpanded, setIsPanelExpanded] = useState(true)
+  const turnosRuta = construirTurnosRuta(puntosRuta)
+  const turnoActual = typeof procesion.turno_actual === 'number' ? procesion.turno_actual : 0
+  const turnoActualRuta = turnosRuta.find((t) => t.turno === turnoActual)
+  const sonesTurno = obtenerPiezasPorTurno(marchas, turnoActual)
+  const sonActual = procesion.marcha_actual || 'Sin informacion'
 
   useEffect(() => {
     const client = createClient()
@@ -159,7 +167,9 @@ export function PublicTrackingView({ initialProcesion, puntosRuta }: PublicTrack
                     Turno actual
                   </div>
                   <p className="text-xl font-semibold text-balance">
-                    {procesion.turno_actual || 'Sin información'}
+                    {turnoActualRuta
+                      ? `Turno ${turnoActualRuta.turno} - ${turnoActualRuta.punto.direccion || 'Sin nombre'}`
+                      : procesion.turno_actual || 'Sin informacion'}
                   </p>
                 </div>
                 
@@ -167,11 +177,24 @@ export function PublicTrackingView({ initialProcesion, puntosRuta }: PublicTrack
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Music className="h-5 w-5 text-secondary" />
-                    Son/Alabado sonando
+                    Sones/Alabados asignados
                   </div>
-                  <p className="text-xl font-semibold text-secondary text-balance">
-                    {procesion.marcha_actual || 'Sin información'}
-                  </p>
+                  {sonesTurno.length > 0 ? (
+                    <div className="rounded-lg border border-secondary/20 bg-secondary/10 p-3">
+                      <ul className="space-y-2">
+                        {sonesTurno.map((son) => (
+                          <li key={son.id} className="flex items-start gap-2">
+                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-secondary" />
+                            <span className="font-medium text-secondary text-balance">{son.nombre}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="text-xl font-semibold text-secondary text-balance">
+                      {sonActual}
+                    </p>
+                  )}
                 </div>
                 
                 {/* Location indicator */}

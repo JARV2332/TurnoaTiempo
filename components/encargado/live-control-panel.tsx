@@ -6,7 +6,6 @@ import {
   iniciarProcesion,
   finalizarProcesion,
   aplicarTurnoProcesion,
-  actualizarMarchaProcesion,
 } from '@/app/encargado/control/actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -32,7 +31,8 @@ import {
 import { Radio, Music, Play, Square, ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import type { Procesion, Marcha, PuntoRuta } from '@/lib/types'
-import { obtenerPiezaPorTurno } from '@/lib/musica'
+import { obtenerPiezaPorTurno, obtenerPiezasPorTurno } from '@/lib/musica'
+import { construirTurnosRuta } from '@/lib/turnos'
 
 interface LiveControlPanelProps {
   procesion: Procesion & { hermandad?: { nombre: string; escudo_url?: string } }
@@ -40,19 +40,15 @@ interface LiveControlPanelProps {
   puntosRuta: PuntoRuta[]
 }
 
-const puntosIdaOrdenados = (puntos: PuntoRuta[]) =>
-  puntos.filter((p) => p.tipo === 'ida').sort((a, b) => a.orden - b.orden)
-
 export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControlPanelProps) {
   const router = useRouter()
-  const puntosIda = puntosIdaOrdenados(puntosRuta)
-  const totalTurnos = Math.max(procesion.total_turnos || 1, puntosIda.length - 1, 1)
+  const turnosRuta = construirTurnosRuta(puntosRuta)
+  const totalTurnos = Math.max(procesion.total_turnos || 1, turnosRuta.length, 1)
 
   const [isLive, setIsLive] = useState(procesion.estado === 'en_curso')
   const turnoActualDb = typeof procesion.turno_actual === 'number' ? procesion.turno_actual : 0
   const [turnoSeleccionado, setTurnoSeleccionado] = useState<string>('')
   const [mostrarUsados, setMostrarUsados] = useState(false)
-  const [marchaActual, setMarchaActual] = useState(procesion.marcha_actual ?? '')
   const [isUpdating, setIsUpdating] = useState(false)
 
   // Aplicar numero de turno: actualiza turno, pieza y posicion en el mapa
@@ -61,9 +57,8 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
     if (Number.isNaN(num) || num < 1 || num > totalTurnos) return
     setIsUpdating(true)
 
-    const turnoIndex = num - 1
     const piezaParaTurno = obtenerPiezaPorTurno(marchas, num)?.nombre ?? null
-    const punto = puntosIda[turnoIndex]
+    const punto = turnosRuta.find((t) => t.turno === num)?.punto
     const lat = punto && punto.lat != null ? punto.lat : null
     const lng = punto && punto.lng != null ? punto.lng : null
 
@@ -75,7 +70,6 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
     })
 
     if (res.ok) {
-      setMarchaActual(piezaParaTurno ?? '')
       // Ocultar el turno ya usado: limpiamos selección y la UI mostrará solo pendientes
       setTurnoSeleccionado('')
     }
@@ -99,12 +93,6 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
       router.push('/encargado')
     }
     setIsUpdating(false)
-    router.refresh()
-  }
-
-  const handleMarchaChange = async (value: string) => {
-    setMarchaActual(value)
-    await actualizarMarchaProcesion(procesion.id, value || null)
     router.refresh()
   }
 
@@ -218,16 +206,16 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
                       // Oculta turnos ya usados: todos los <= turno_actual guardado
                       .filter((t) => (mostrarUsados ? true : t > turnoActualDb))
                       .map((t) => {
-                        const idx = t - 1
-                        const punto = puntosIda[idx]
-                        const marcha = obtenerPiezaPorTurno(marchas, t)?.nombre ?? null
+                        const punto = turnosRuta.find((item) => item.turno === t)?.punto
+                        const marchasTurno = obtenerPiezasPorTurno(marchas, t)
+                        const marcha = marchasTurno.map((m) => m.nombre).join(', ')
                         const labelDireccion = punto?.direccion ? ` — ${punto.direccion}` : ''
                         return (
                           <SelectItem key={t} value={String(t)}>
                             <div className="flex flex-col">
                               <span className="font-medium">Turno {t}{labelDireccion}</span>
                               <span className="text-xs text-muted-foreground">
-                                Son/Alabado: {marcha || '—'}
+                                Sones/Alabados: {marcha || '—'}
                               </span>
                             </div>
                           </SelectItem>
@@ -261,7 +249,7 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
           </Card>
         )}
 
-        {/* Son/Alabado Selector */}
+        {/* Son/Alabado actual (se determina por turno aplicado) */}
         {isLive && (
           <Card className="glass-card">
             <CardHeader className="pb-3">
@@ -271,85 +259,30 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {marchas.length > 0 ? (
-                <Select
-                  value={marchaActual || undefined}
-                  onValueChange={handleMarchaChange}
-                >
-                  <SelectTrigger className="bg-input/50 h-12 text-base">
-                    <SelectValue placeholder="Selecciona el son o alabado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {marchas.map((marcha) => (
-                      <SelectItem key={marcha.id} value={marcha.nombre}>
-                        <div className="flex flex-col">
-                          <span>{marcha.nombre}</span>
-                          {marcha.autor && (
-                            <span className="text-xs text-muted-foreground">
-                              {marcha.autor}
-                            </span>
-                          )}
-                        </div>
-                      </SelectItem>
+              {(() => {
+                const piezas = obtenerPiezasPorTurno(marchas, turnoActualDb)
+                return (
+              <div className="p-3 rounded-lg bg-secondary/10 border border-secondary/20">
+                <p className="text-xs text-muted-foreground mb-1">Sonando ahora:</p>
+                {piezas.length > 0 ? (
+                  <div className="space-y-1">
+                    {piezas.map((pieza) => (
+                      <p key={pieza.id} className="font-medium text-secondary">
+                        {pieza.nombre}
+                      </p>
                     ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    No hay sones/alabados configurados
-                  </p>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/encargado/procesiones/${procesion.id}`}>
-                      Anadir sones/alabados
-                    </Link>
-                  </Button>
-                </div>
-              )}
-              
-              {marchaActual && (
-                <div className="mt-3 p-3 rounded-lg bg-secondary/10 border border-secondary/20">
-                  <p className="text-xs text-muted-foreground mb-1">Sonando ahora:</p>
-                  <p className="font-medium text-secondary">{marchaActual}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Quick Actions */}
-        {isLive && (
-          <Card className="glass-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Acciones Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                onClick={() => handleMarchaChange('Silencio')}
-                className="h-auto py-3"
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-lg">🤫</span>
-                  <span className="text-xs">Silencio</span>
-                </div>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleMarchaChange('')}
-                className="h-auto py-3"
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-lg">🔇</span>
-                  <span className="text-xs">Sin son/alabado</span>
-                </div>
-              </Button>
-              <Button variant="outline" asChild className="h-auto py-3 col-span-2">
-                <Link href={`/seguimiento/${procesion.id}`} target="_blank">
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-lg">👁️</span>
-                    <span className="text-xs">Ver mapa público</span>
                   </div>
+                ) : (
+                  <p className="font-medium text-secondary">
+                    {procesion.marcha_actual || 'Sin son/alabado'}
+                  </p>
+                )}
+              </div>
+                )
+              })()}
+              <Button variant="outline" size="sm" asChild className="mt-3">
+                <Link href={`/seguimiento/${procesion.id}`} target="_blank">
+                  Ver seguimiento publico
                 </Link>
               </Button>
             </CardContent>
