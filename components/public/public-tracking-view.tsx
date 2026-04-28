@@ -69,6 +69,7 @@ export function PublicTrackingView({ initialProcesion, puntosRuta, marchas }: Pu
         <TrackingMap
           procesion={procesion}
           puntosRuta={puntosRuta}
+          avatarUrl={procesion.avatar_url || undefined}
           escudoUrl={procesion.hermandad?.escudo_url}
         />
         
@@ -168,7 +169,7 @@ export function PublicTrackingView({ initialProcesion, puntosRuta, marchas }: Pu
                   </div>
                   <p className="text-xl font-semibold text-balance">
                     {turnoActualRuta
-                      ? `Turno ${turnoActualRuta.turno} - ${turnoActualRuta.punto.direccion || 'Sin nombre'}`
+                      ? turnoActualRuta.punto.direccion || `Turno ${turnoActualRuta.turno}`
                       : procesion.turno_actual || 'Sin informacion'}
                   </p>
                 </div>

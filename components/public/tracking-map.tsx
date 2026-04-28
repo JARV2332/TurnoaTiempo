@@ -8,6 +8,7 @@ import { construirTurnosRuta } from '@/lib/turnos'
 interface TrackingMapProps {
   procesion: Procesion
   puntosRuta: PuntoRuta[]
+  avatarUrl?: string
   escudoUrl?: string
 }
 
@@ -16,10 +17,11 @@ const DEFAULT_CENTER = { lat: 37.3891, lng: -5.9845 }
 const DEFAULT_ZOOM = 15
 const FOCUS_ZOOM = 18
 
-export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapProps) {
+export function TrackingMap({ procesion, puntosRuta, avatarUrl, escudoUrl }: TrackingMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<any>(null)
   const marker = useRef<any>(null)
+  const routeMarkers = useRef<any[]>([])
   const [mapLoaded, setMapLoaded] = useState(false)
   const { resolvedTheme } = useTheme()
 
@@ -190,6 +192,9 @@ export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapPro
   // Actualizar la línea de progreso cuando cambia el turno
   useEffect(() => {
     if (!map.current || !mapLoaded) return
+    const maplibregl = (window as any).maplibregl
+    addRouteMarkers(maplibregl)
+
     const source = map.current.getSource('route-ida-progress')
     if (!source) return
 
@@ -213,7 +218,7 @@ export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapPro
       properties: {},
       geometry: { type: 'LineString', coordinates },
     })
-  }, [mapLoaded, procesion.turno_actual, puntosRuta])
+  }, [mapLoaded, procesion.turno_actual, puntosRuta, avatarUrl, escudoUrl])
 
   const getPuntosIda = () =>
     puntosRuta
@@ -313,6 +318,9 @@ export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapPro
   }
 
   const addRouteMarkers = (maplibregl: any) => {
+    routeMarkers.current.forEach((m) => m.remove?.())
+    routeMarkers.current = []
+
     const withCoords = puntosRuta.filter(p => p.lat != null && p.lng != null)
     const puntosIda = withCoords
       .filter((p) => p.tipo === 'ida')
@@ -323,26 +331,51 @@ export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapPro
     const mapaTurnos = new Map<string, number>()
     puntosIda.forEach((p, idx) => mapaTurnos.set(p.id, idx + 1))
     puntosRegreso.forEach((p, idx) => mapaTurnos.set(p.id, puntosIda.length + idx + 1))
+    const turnoActual = typeof procesion.turno_actual === 'number' ? procesion.turno_actual : 0
+    const turnosRuta = construirTurnosRuta(withCoords)
+    const puntoActualId = turnosRuta.find((t) => t.turno === turnoActual)?.punto.id
+    const markerImage = avatarUrl || escudoUrl
 
     withCoords.forEach((punto) => {
       const el = document.createElement('div')
       el.className = 'route-marker'
-      el.style.cssText = `
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background: ${punto.tipo === 'ida' ? '#7c3aed' : '#fbbf24'};
-        border: 3px solid ${punto.tipo === 'ida' ? '#4c1d95' : '#92400e'};
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 10px;
-        font-weight: bold;
-        color: ${punto.tipo === 'ida' ? 'white' : '#1f2937'};
-        cursor: pointer;
-      `
-      el.innerHTML = `${mapaTurnos.get(punto.id) ?? 0}`
-      new maplibregl.Marker({ element: el })
+      const esPuntoActual = punto.id === puntoActualId
+
+      if (esPuntoActual && markerImage) {
+        el.style.cssText = `
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          background: #111827;
+          border: 3px solid ${punto.tipo === 'ida' ? '#7c3aed' : '#fbbf24'};
+          box-shadow: 0 0 12px rgba(124, 58, 237, 0.35), 0 0 20px rgba(251, 191, 36, 0.25);
+          overflow: hidden;
+          cursor: pointer;
+        `
+        const img = document.createElement('img')
+        img.src = markerImage
+        img.alt = 'Punto actual'
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;'
+        el.appendChild(img)
+      } else {
+        el.style.cssText = `
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: ${punto.tipo === 'ida' ? '#7c3aed' : '#fbbf24'};
+          border: 3px solid ${punto.tipo === 'ida' ? '#4c1d95' : '#92400e'};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: bold;
+          color: ${punto.tipo === 'ida' ? 'white' : '#1f2937'};
+          cursor: pointer;
+        `
+        el.innerHTML = `${mapaTurnos.get(punto.id) ?? 0}`
+      }
+
+      const mk = new maplibregl.Marker({ element: el })
         .setLngLat([punto.lng!, punto.lat!])
         .setPopup(
           new maplibregl.Popup({ offset: 25 }).setHTML(`
@@ -350,12 +383,13 @@ export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapPro
                 <strong>${punto.direccion || 'Punto'}</strong>
                 <br/>
                 <small style="color: ${punto.tipo === 'ida' ? '#7c3aed' : '#b45309'}">
-                  ${punto.tipo === 'ida' ? 'Ida' : 'Regreso'}
+                  ${punto.tipo === 'ida' ? 'Ida' : 'Regreso'} · Turno ${mapaTurnos.get(punto.id) ?? '-'}
                 </small>
               </div>
             `)
         )
         .addTo(map.current)
+      routeMarkers.current.push(mk)
     })
   }
 
@@ -366,15 +400,15 @@ export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapPro
     const el = document.createElement('div')
     el.className = 'procesion-marker'
     el.style.cssText = `
-      width: 48px;
-      height: 48px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #4c1d95, #7c3aed);
-      border: 4px solid #fbbf24;
+      background: #111827;
+      border: 3px solid #fbbf24;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 20px rgba(124, 58, 237, 0.5), 0 0 40px rgba(251, 191, 36, 0.3);
+      box-shadow: 0 0 14px rgba(251, 191, 36, 0.35), 0 0 28px rgba(124, 58, 237, 0.25);
       animation: pulse 2s ease-in-out infinite;
       overflow: hidden;
     `
@@ -389,10 +423,11 @@ export function TrackingMap({ procesion, puntosRuta, escudoUrl }: TrackingMapPro
     `
     document.head.appendChild(style)
     
-    if (escudoUrl) {
+    const markerImage = avatarUrl || escudoUrl
+    if (markerImage) {
       const img = document.createElement('img')
-      img.src = escudoUrl
-      img.alt = 'Escudo'
+      img.src = markerImage
+      img.alt = 'Imagen de referencia'
       img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;'
       el.appendChild(img)
     } else {
