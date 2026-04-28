@@ -17,19 +17,62 @@ interface HermandadFormProps {
 export function HermandadForm({ hermandad }: HermandadFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [isProcessingImage, setIsProcessingImage] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [escudoPreview, setEscudoPreview] = useState<string | null>(hermandad?.escudo_url || null)
   const [escudoFile, setEscudoFile] = useState<File | null>(null)
 
-  const handleEscudoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const comprimirImagen = async (file: File): Promise<File> => {
+    const imageBitmap = await createImageBitmap(file)
+    const maxSide = 1600
+    const scale = Math.min(1, maxSide / Math.max(imageBitmap.width, imageBitmap.height))
+    const width = Math.max(1, Math.round(imageBitmap.width * scale))
+    const height = Math.max(1, Math.round(imageBitmap.height * scale))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return file
+    ctx.drawImage(imageBitmap, 0, 0, width, height)
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', 0.82),
+    )
+    imageBitmap.close()
+    if (!blob) return file
+
+    const maxBytes = 8 * 1024 * 1024 // 8MB final para evitar fallos en request
+    if (blob.size <= maxBytes) {
+      return new File([blob], `${file.name.replace(/\.[^.]+$/, '')}.jpg`, { type: 'image/jpeg' })
+    }
+
+    // Segunda pasada más agresiva
+    const blob2 = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', 0.68),
+    )
+    if (!blob2) return file
+    return new File([blob2], `${file.name.replace(/\.[^.]+$/, '')}.jpg`, { type: 'image/jpeg' })
+  }
+
+  const handleEscudoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setEscudoFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setEscudoPreview(reader.result as string)
+      setError(null)
+      setIsProcessingImage(true)
+      try {
+        const processed = await comprimirImagen(file)
+        setEscudoFile(processed)
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setEscudoPreview(reader.result as string)
+        }
+        reader.readAsDataURL(processed)
+      } catch {
+        setError('No se pudo procesar la imagen. Intenta con otra.')
+      } finally {
+        setIsProcessingImage(false)
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -118,8 +161,11 @@ export function HermandadForm({ hermandad }: HermandadFormProps) {
                   onChange={handleEscudoChange}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  PNG, JPG hasta 2MB
+                  Puedes subir imagen grande; se optimiza automaticamente antes de guardar.
                 </p>
+                {isProcessingImage && (
+                  <p className="text-xs text-primary mt-1">Procesando imagen...</p>
+                )}
               </div>
             </div>
           </div>
@@ -146,7 +192,7 @@ export function HermandadForm({ hermandad }: HermandadFormProps) {
       </Card>
 
       <div className="flex gap-3">
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading || isProcessingImage}>
           {isLoading ? 'Guardando...' : hermandad ? 'Actualizar' : 'Crear Hermandad'}
         </Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>
