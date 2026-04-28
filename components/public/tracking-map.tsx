@@ -343,12 +343,12 @@ export function TrackingMap({ procesion, puntosRuta, avatarUrl, escudoUrl }: Tra
 
       if (esPuntoActual && markerImage) {
         el.style.cssText = `
-          width: 34px;
-          height: 34px;
+          width: 96px;
+          height: 96px;
           border-radius: 50%;
           background: #111827;
-          border: 3px solid ${punto.tipo === 'ida' ? '#7c3aed' : '#fbbf24'};
-          box-shadow: 0 0 12px rgba(124, 58, 237, 0.35), 0 0 20px rgba(251, 191, 36, 0.25);
+          border: 4px solid ${punto.tipo === 'ida' ? '#7c3aed' : '#fbbf24'};
+          box-shadow: 0 0 20px rgba(124, 58, 237, 0.4), 0 0 30px rgba(251, 191, 36, 0.35);
           overflow: hidden;
           cursor: pointer;
         `
