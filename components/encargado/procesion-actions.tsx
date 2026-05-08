@@ -20,15 +20,17 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Trash2, ExternalLink, AlertTriangle, Copy } from 'lucide-react'
+import { ProcesionQrShare } from '@/components/encargado/procesion-qr-share'
 import Link from 'next/link'
 import type { Procesion } from '@/lib/types'
 import { formatearFechaISO } from '@/lib/fecha'
 
 interface ProcesionActionsProps {
   procesion: Procesion
+  publicBaseUrl: string
 }
 
-export function ProcesionActions({ procesion }: ProcesionActionsProps) {
+export function ProcesionActions({ procesion, publicBaseUrl }: ProcesionActionsProps) {
   const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
@@ -195,6 +197,7 @@ export function ProcesionActions({ procesion }: ProcesionActionsProps) {
                 Ver página pública
               </Link>
             </Button>
+            <ProcesionQrShare procesionId={procesion.id} publicBaseUrl={publicBaseUrl} />
           </div>
         </CardContent>
       </Card>
