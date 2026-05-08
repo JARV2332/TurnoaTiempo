@@ -8,7 +8,8 @@ La app usa **Supabase** como backend. Se conecta con estas variables de entorno 
 |----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto (ej: `https://xxxx.supabase.co`) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clave anónima pública del proyecto |
-| `NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL` | (Opcional) URL de redirección tras confirmar email |
+| `NEXT_PUBLIC_AUTH_EMAIL_REDIRECT_URL` | (Opcional, recomendado) URL exacta de redirección para confirmar email (ej. `https://tu-dominio.com/auth/login`) |
+| `NEXT_PUBLIC_SITE_URL` | (Opcional) URL base del sitio; se usa para construir la redirección a `/auth/login` |
 
 Sin estas variables, la app no puede conectar con ninguna base de datos. Si no tienes proyecto en Supabase, la base de datos no existe hasta que la crees y ejecutes los scripts.
 
