@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { MapPin } from 'lucide-react'
+import { getAuthEmailRedirectUrl } from '@/lib/auth-redirect'
 
 export default function RegistroPage() {
   const [email, setEmail] = useState('')
@@ -48,9 +49,7 @@ export default function RegistroPage() {
         email,
         password,
         options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-            `${window.location.origin}/auth/login`,
+          emailRedirectTo: getAuthEmailRedirectUrl(),
           data: {
             nombre_completo: nombre,
             rol: 'encargado',

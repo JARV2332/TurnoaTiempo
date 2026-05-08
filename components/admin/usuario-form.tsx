@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { Profile, Hermandad } from '@/lib/types'
+import { getAuthEmailRedirectUrl } from '@/lib/auth-redirect'
 
 interface UsuarioFormProps {
   usuario?: Profile
@@ -49,7 +50,7 @@ export function UsuarioForm({ usuario, hermandades, isNewUser = false }: Usuario
           password,
           options: {
             data: { role, hermandad_id: hermandadId || null },
-            emailRedirectTo: `${window.location.origin}/auth/login`,
+            emailRedirectTo: getAuthEmailRedirectUrl(),
           },
         })
         if (authError) throw authError
