@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowLeft, Music, MapPin, Settings, Play, Radio, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { MarchasManager } from '@/components/encargado/marchas-manager'
 import { RutaManager } from '@/components/encargado/ruta-manager'
 import { ProcesionActions } from '@/components/encargado/procesion-actions'
@@ -53,6 +54,13 @@ export default async function ProcesionDetailPage({
   const puntosRegreso = (puntosRuta || [])
     .filter((p) => p.tipo === 'regreso')
     .sort((a, b) => a.orden - b.orden)
+
+  const headersList = await headers()
+  const proto = headersList.get('x-forwarded-proto') ?? 'https'
+  const host = headersList.get('x-forwarded-host') ?? headersList.get('host') ?? ''
+  const inferredBase = host ? `${proto}://${host}` : ''
+  const publicBaseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || inferredBase
 
   const turnosRuta = [
     ...puntosIda.map((p, index) => ({
@@ -166,7 +174,7 @@ export default async function ProcesionDetailPage({
         </TabsContent>
         
         <TabsContent value="ajustes">
-          <ProcesionActions procesion={procesion} />
+          <ProcesionActions procesion={procesion} publicBaseUrl={publicBaseUrl} />
         </TabsContent>
       </Tabs>
     </div>
