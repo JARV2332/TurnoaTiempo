@@ -97,7 +97,7 @@ export const informeVirgenSocorroDetail: InformeDetail = {
     'Agradezco la apertura para innovar juntos. Estoy a su entera disposición para planificar futuras actividades y seguir elevando el estándar organizativo de nuestras tradiciones.',
   ],
   firma: {
-    nombre: 'Jorge Alberto Romero Villanueva',
+    nombre: 'Ing. Jorge Alberto Romero Villanueva',
     cargo: 'Desarrollador — Turno a Tiempo',
     web: 'turnoatiempo.com',
   },
