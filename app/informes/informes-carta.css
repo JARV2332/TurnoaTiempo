@@ -1,0 +1,227 @@
+/* Estilo "carta oficial" del informe — acotado a .informe-carta-scope */
+.informe-carta-scope {
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #555555;
+  --color-background-secondary: #f5f3ef;
+  --color-border-tertiary: #dddddd;
+  --border-radius-lg: 10px;
+  --informe-navy: #1a3a5c;
+  background: #faf8f5;
+  color: var(--color-text-primary);
+  font-family: var(--font-informe-serif), Georgia, 'Times New Roman', serif;
+}
+
+.informe-carta-scope .logo-title,
+.informe-carta-scope .carta-header h1,
+.informe-carta-scope .kpi-value,
+.informe-carta-scope .firma-nombre {
+  font-family: var(--font-informe-display), Georgia, 'Times New Roman', serif;
+}
+
+.informe-carta-scope .carta-wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem 4rem;
+}
+
+.informe-carta-scope .carta-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid var(--informe-navy);
+}
+
+.informe-carta-scope .logo-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--informe-navy);
+  margin-bottom: 6px;
+}
+
+.informe-carta-scope .carta-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 6px;
+  line-height: 1.3;
+}
+
+.informe-carta-scope .fecha-ref {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  margin: 0;
+}
+
+.informe-carta-scope .saludo p {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+}
+
+.informe-carta-scope .kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 2rem 0;
+}
+
+.informe-carta-scope .kpi-card {
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-lg);
+  padding: 1rem;
+  text-align: center;
+}
+
+.informe-carta-scope .kpi-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+.informe-carta-scope .kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--informe-navy);
+  line-height: 1;
+}
+
+.informe-carta-scope .kpi-delta {
+  font-size: 12px;
+  color: #1a6e3c;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.informe-carta-scope .section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin: 2rem 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.informe-carta-scope .section-label::after {
+  content: '';
+  flex: 1;
+  height: 0.5px;
+  background: var(--color-border-tertiary);
+}
+
+.informe-carta-scope .chart-card {
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.informe-carta-scope .chart-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+}
+
+.informe-carta-scope .two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.informe-carta-scope .legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.informe-carta-scope .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.informe-carta-scope .legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.informe-carta-scope .carta-body {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--color-text-primary);
+  margin: 1.5rem 0;
+}
+
+.informe-carta-scope .carta-body p {
+  margin-bottom: 1rem;
+}
+
+.informe-carta-scope .highlight-stat {
+  color: var(--informe-navy);
+  font-weight: 600;
+}
+
+.informe-carta-scope .firma {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 0.5px solid var(--color-border-tertiary);
+}
+
+.informe-carta-scope .firma-nombre {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
+}
+
+.informe-carta-scope .firma-cargo {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.informe-carta-scope .firma-web {
+  font-size: 12px;
+  color: var(--informe-navy);
+  margin-top: 4px;
+}
+
+.informe-carta-scope .chart-h-220 {
+  width: 100%;
+  height: 220px;
+}
+
+.informe-carta-scope .chart-h-180 {
+  width: 100%;
+  height: 180px;
+}
+
+.informe-carta-scope .chart-h-160 {
+  width: 100%;
+  height: 160px;
+}
+
+@media (max-width: 600px) {
+  .informe-carta-scope .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .informe-carta-scope .two-col {
+    grid-template-columns: 1fr;
+  }
+}

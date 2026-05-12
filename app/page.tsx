@@ -169,9 +169,14 @@ export default async function HomePage() {
       <footer className="px-6 py-8 border-t border-border/50">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>Turno en Tiempo Real</p>
-          <Link href="/auth/login" className="hover:text-primary transition-colors">
-            Acceso para gestores
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <Link href="/informes" className="hover:text-primary transition-colors">
+              Informes y casos de éxito
+            </Link>
+            <Link href="/auth/login" className="hover:text-primary transition-colors">
+              Acceso para gestores
+            </Link>
+          </div>
         </div>
       </footer>
     </main>
