@@ -17,7 +17,7 @@ export const informeVirgenSocorroDetail: InformeDetail = {
     kicker: 'Turno a Tiempo — Informe oficial',
     headline: 'Resultados y métricas del seguimiento en vivo',
     dateLocationLine:
-      'Guatemala, 12 de mayo de 2026 · Cortejo procesional — Santa Iglesia Catedral Metropolitana',
+      'Guatemala, 9 de mayo de 2026 · Cortejo procesional — Santa Iglesia Catedral Metropolitana',
   },
   saludo: [
     'Estimados miembros de la Junta Directiva y Encargados de Logística,',
