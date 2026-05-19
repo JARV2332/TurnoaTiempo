@@ -44,6 +44,10 @@ if (-not (Test-Path "android")) {
   if ($LASTEXITCODE -ne 0) { exit 1 }
 }
 
+Write-Host "Generando icono de la app (logo Turno a Tiempo)..." -ForegroundColor Cyan
+npm run icons
+if ($LASTEXITCODE -ne 0) { exit 1 }
+
 Write-Host "Sincronizando Capacitor..." -ForegroundColor Cyan
 npx cap sync android
 if ($LASTEXITCODE -ne 0) { exit 1 }

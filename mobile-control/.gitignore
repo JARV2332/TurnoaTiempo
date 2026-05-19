@@ -1,5 +1,7 @@
 node_modules/
 android/
+assets/icon.png
+assets/icon-only.png
 .idea/
 *.apk
 .DS_Store

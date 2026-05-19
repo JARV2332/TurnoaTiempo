@@ -23,6 +23,17 @@ npx cap sync android
 
 O ejecuta solo: `powershell -ExecutionPolicy Bypass -File build-apk.ps1` (el script hace esto solo).
 
+## Icono de la app (logo Turno a Tiempo)
+
+El icono del launcher se genera desde `public/turnoatiempo.jpg` del proyecto web:
+
+```bash
+npm run icons
+```
+
+Luego vuelve a compilar el APK (`build-apk.ps1` ya incluye `icons` antes del build).  
+Fondo del icono adaptativo: morado `#1e1b4b` (marca del sitio).
+
 ## Generar APK de prueba (debug)
 
 ```bash
