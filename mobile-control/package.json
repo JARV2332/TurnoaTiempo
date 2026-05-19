@@ -1,0 +1,20 @@
+{
+  "name": "turnoatiempo-control-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App Android de campo — Turno a Tiempo (control en vivo)",
+  "scripts": {
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "android:debug": "cd android && .\\gradlew.bat assembleDebug",
+    "android:apk": "npm run cap:sync && npm run android:debug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/geolocation": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}
