@@ -12,14 +12,16 @@ Carga la web de producción: `https://turnoatiempo.com` con `?app=control`.
 
 ## Instalar dependencias
 
+Si `npm install` falla con **certificado** o **403** (red corporativa), usa el registro espejo:
+
 ```bash
-cd TurnoaTiempo-Control-Android
-npm install
+cd mobile-control
+npm install --registry https://registry.npmmirror.com --strict-ssl=false
 npx cap add android
 npx cap sync android
 ```
 
-(Si `android/` ya existe, solo `npm install` y `npx cap sync android`.)
+O ejecuta solo: `powershell -ExecutionPolicy Bypass -File build-apk.ps1` (el script hace esto solo).
 
 ## Generar APK de prueba (debug)
 
