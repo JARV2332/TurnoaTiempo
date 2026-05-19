@@ -80,6 +80,27 @@ export async function aplicarTurnoProcesion(
   return { ok: true as const }
 }
 
+export async function actualizarUbicacionEnVivo(
+  procesionId: string,
+  ubicacion_lat: number,
+  ubicacion_lng: number,
+) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false as const, error: 'No autenticado' }
+
+  const { error } = await supabase
+    .from('procesiones')
+    .update({ ubicacion_lat, ubicacion_lng })
+    .eq('id', procesionId)
+
+  if (error) return { ok: false as const, error: error.message }
+  revalidatePath(`/seguimiento/${procesionId}`)
+  return { ok: true as const }
+}
+
 export async function actualizarMarchaProcesion(
   procesionId: string,
   marcha_actual: string | null,
