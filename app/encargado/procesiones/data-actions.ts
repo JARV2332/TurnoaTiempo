@@ -200,6 +200,30 @@ export async function actualizarOrdenMarchas(
   return { ok: true as const }
 }
 
+export async function importarMarchasBulk(
+  procesionId: string,
+  items: { nombre: string; autor: string | null; turno: number; orden: number }[],
+) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false as const, error: 'No autenticado' }
+
+  const payload = items.map((m) => ({
+    procesion_id: procesionId,
+    nombre: m.nombre,
+    autor: m.autor,
+    orden: m.orden,
+    turno: m.turno,
+  }))
+
+  const { data, error } = await supabase.from('marchas').insert(payload).select()
+  if (error) return { ok: false as const, error: error.message }
+  revalidateEncargado(procesionId)
+  return { ok: true as const, marchas: data }
+}
+
 export async function insertarPuntoRuta(input: {
   procesionId: string
   direccion: string

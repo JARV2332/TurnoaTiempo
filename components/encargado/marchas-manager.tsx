@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, Music, Trash2 } from 'lucide-react'
+import { ImportMarchasDialog } from '@/components/encargado/import-marchas-dialog'
 import type { Marcha } from '@/lib/types'
 
 interface MarchasManagerProps {
@@ -99,6 +100,11 @@ export function MarchasManager({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Mass import button */}
+          <div className="flex justify-end">
+            <ImportMarchasDialog procesionId={procesionId} existingCount={marchas.length} />
+          </div>
+
           {/* Add new items in bulk */}
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-2 sm:col-span-2">
