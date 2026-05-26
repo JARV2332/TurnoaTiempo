@@ -54,8 +54,7 @@ export default async function ProcesionDetailPage({
     .filter((p) => p.tipo === 'regreso')
     .sort((a, b) => a.orden - b.orden)
 
-  const publicBaseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://turnoatiempo.com'
+  const publicBaseUrl = 'https://turnoatiempo.com'
 
   const turnosRuta = [
     ...puntosIda.map((p, index) => ({

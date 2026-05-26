@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import QRCode from 'qrcode'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,21 +23,13 @@ type ProcesionQrShareProps = {
   publicBaseUrl: string
 }
 
-export function ProcesionQrShare({ procesionId, publicBaseUrl }: ProcesionQrShareProps) {
+export function ProcesionQrShare({ procesionId }: ProcesionQrShareProps) {
   const [open, setOpen] = useState(false)
-  const [clientOrigin, setClientOrigin] = useState('')
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [qrError, setQrError] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
 
-  useEffect(() => {
-    setClientOrigin(typeof window !== 'undefined' ? window.location.origin : '')
-  }, [])
-
-  const shareUrl = useMemo(() => {
-    const base = (publicBaseUrl || 'https://turnoatiempo.com').replace(/\/$/, '')
-    return `${base}/seguimiento/${procesionId}`
-  }, [publicBaseUrl, procesionId])
+  const shareUrl = `https://turnoatiempo.com/seguimiento/${procesionId}`
 
   const generateQr = useCallback(async () => {
     if (!shareUrl) {
