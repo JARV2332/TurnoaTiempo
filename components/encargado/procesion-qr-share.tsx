@@ -35,10 +35,9 @@ export function ProcesionQrShare({ procesionId, publicBaseUrl }: ProcesionQrShar
   }, [])
 
   const shareUrl = useMemo(() => {
-    const base = (publicBaseUrl || clientOrigin || '').replace(/\/$/, '')
-    if (!base) return ''
+    const base = (publicBaseUrl || 'https://turnoatiempo.com').replace(/\/$/, '')
     return `${base}/seguimiento/${procesionId}`
-  }, [publicBaseUrl, clientOrigin, procesionId])
+  }, [publicBaseUrl, procesionId])
 
   const generateQr = useCallback(async () => {
     if (!shareUrl) {
