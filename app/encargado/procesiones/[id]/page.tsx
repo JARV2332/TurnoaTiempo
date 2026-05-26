@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowLeft, Music, MapPin, Settings, Play, Radio, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { headers } from 'next/headers'
 import { MarchasManager } from '@/components/encargado/marchas-manager'
 import { RutaManager } from '@/components/encargado/ruta-manager'
 import { ProcesionActions } from '@/components/encargado/procesion-actions'
@@ -55,12 +54,8 @@ export default async function ProcesionDetailPage({
     .filter((p) => p.tipo === 'regreso')
     .sort((a, b) => a.orden - b.orden)
 
-  const headersList = await headers()
-  const proto = headersList.get('x-forwarded-proto') ?? 'https'
-  const host = headersList.get('x-forwarded-host') ?? headersList.get('host') ?? ''
-  const inferredBase = host ? `${proto}://${host}` : ''
   const publicBaseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || inferredBase
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://turnoatiempo.com'
 
   const turnosRuta = [
     ...puntosIda.map((p, index) => ({
