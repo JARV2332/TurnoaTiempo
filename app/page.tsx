@@ -2,25 +2,43 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { MapPin, Radio, Users, Shield } from 'lucide-react'
+import { MapPin, Radio, Users, Shield, History } from 'lucide-react'
+import { formatearFechaISO } from '@/lib/fecha'
 
 export default async function HomePage() {
   const supabase = await createClient()
   
-  // Get active procesiones for public tracking
-  const { data: procesiones } = await supabase
-    .from('procesiones')
-    .select(`
-      id,
-      nombre,
-      estado,
-      hermandad:hermandades(
+  const [{ data: procesiones }, { data: historial }] = await Promise.all([
+    supabase
+      .from('procesiones')
+      .select(`
+        id,
         nombre,
-        escudo_url
-      )
-    `)
-    .eq('estado', 'en_curso')
-    .order('created_at', { ascending: false })
+        estado,
+        fecha,
+        hermandad:hermandades(
+          nombre,
+          escudo_url
+        )
+      `)
+      .eq('estado', 'en_curso')
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('procesiones')
+      .select(`
+        id,
+        nombre,
+        estado,
+        fecha,
+        hermandad:hermandades(
+          nombre,
+          escudo_url
+        )
+      `)
+      .eq('estado', 'finalizada')
+      .order('fecha', { ascending: false })
+      .limit(48),
+  ])
 
   return (
     <main className="min-h-svh">
@@ -127,6 +145,72 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+
+      {/* Historial */}
+      {historial && historial.length > 0 && (
+        <section id="historial" className="px-6 py-16 border-t border-border/50 bg-muted/20">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex flex-col items-center text-center mb-10">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+                <History className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                Procesiones pasadas
+              </h2>
+              <p className="text-muted-foreground max-w-lg">
+                Consulta el recorrido y la información de procesiones que ya concluyeron
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {historial.map((procesion) => (
+                <Link key={procesion.id} href={`/seguimiento/${procesion.id}`}>
+                  <Card className="glass-card hover:border-muted-foreground/40 transition-colors cursor-pointer h-full opacity-95 hover:opacity-100">
+                    <CardHeader className="flex flex-row items-center gap-4">
+                      {procesion.hermandad?.escudo_url ? (
+                        <img
+                          src={procesion.hermandad.escudo_url}
+                          alt=""
+                          className="h-12 w-12 rounded-full object-cover grayscale-[30%]"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                          <Users className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg truncate">
+                          {procesion.nombre}
+                        </CardTitle>
+                        <CardDescription className="truncate">
+                          {procesion.hermandad?.nombre}
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          Finalizada
+                        </span>
+                        {procesion.fecha && (
+                          <span className="text-sm text-muted-foreground">
+                            {formatearFechaISO(procesion.fecha, {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       
       {/* Features Section */}
       <section className="px-6 py-16 border-t border-border/50">
@@ -170,6 +254,11 @@ export default async function HomePage() {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>Turno en Tiempo Real</p>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {historial && historial.length > 0 && (
+              <Link href="#historial" className="hover:text-primary transition-colors">
+                Procesiones pasadas
+              </Link>
+            )}
             <Link href="/informes" className="hover:text-primary transition-colors">
               Informes y casos de éxito
             </Link>

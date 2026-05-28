@@ -13,7 +13,8 @@ import {
   Home,
   Navigation,
   AlertCircle,
-  Printer
+  Printer,
+  History,
 } from 'lucide-react'
 import Link from 'next/link'
 import type { Procesion, PuntoRuta, Marcha } from '@/lib/types'
@@ -60,7 +61,10 @@ export function PublicTrackingView({ initialProcesion, puntosRuta, marchas }: Pu
   }, [procesion.id])
 
   const isLive = procesion.estado === 'en_curso'
+  const isHistorial = procesion.estado === 'finalizada'
   const hasLocation = procesion.ubicacion_lat != null && procesion.ubicacion_lng != null
+  const puntosIda = puntosRuta.filter((p) => p.tipo === 'ida')
+  const puntosRegreso = puntosRuta.filter((p) => p.tipo === 'regreso')
 
   return (
     <div className="fixed inset-0 flex flex-col bg-background">
@@ -206,25 +210,71 @@ export function PublicTrackingView({ initialProcesion, puntosRuta, marchas }: Pu
                   </div>
                 )}
               </>
+            ) : isHistorial ? (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-border bg-muted/30 p-4 text-center">
+                  <History className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <h3 className="font-medium mb-1">Procesión finalizada</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Vista de historial: recorrido y datos del cortejo.
+                  </p>
+                  {procesion.fecha && (
+                    <p className="text-sm mt-2 text-primary font-medium">
+                      {formatearFechaISO(procesion.fecha, {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  )}
+                </div>
+                {puntosRuta.length > 0 && (
+                  <div className="space-y-3">
+                    {puntosIda.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-primary mb-2 uppercase tracking-wide">
+                          Ida ({puntosIda.length} puntos)
+                        </p>
+                        <ul className="space-y-1 text-sm text-muted-foreground max-h-32 overflow-y-auto">
+                          {puntosIda.map((p, i) => (
+                            <li key={p.id} className="truncate pl-2 border-l-2 border-primary/30">
+                              {i + 1}. {p.direccion || `Punto ${i + 1}`}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {puntosRegreso.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-secondary mb-2 uppercase tracking-wide">
+                          Regreso ({puntosRegreso.length} puntos)
+                        </p>
+                        <ul className="space-y-1 text-sm text-muted-foreground max-h-32 overflow-y-auto">
+                          {puntosRegreso.map((p, i) => (
+                            <li key={p.id} className="truncate pl-2 border-l-2 border-secondary/30">
+                              {i + 1}. {p.direccion || `Punto ${i + 1}`}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <AlertCircle className="h-12 w-12 text-muted-foreground mb-3" />
-                <h3 className="font-medium mb-1">
-                  {procesion.estado === 'finalizada' 
-                    ? 'Procesión finalizada' 
-                    : 'Procesión no iniciada'}
-                </h3>
+                <h3 className="font-medium mb-1">Procesión no iniciada</h3>
                 <p className="text-sm text-muted-foreground">
-                  {procesion.estado === 'finalizada' 
-                    ? 'Esta procesión ya ha concluido su recorrido.'
-                    : 'El seguimiento en tiempo real comenzará cuando la procesión se inicie.'}
+                  El seguimiento en tiempo real comenzará cuando la procesión se inicie.
                 </p>
-                {procesion.fecha && procesion.estado === 'programada' && (
+                {procesion.fecha && (
                   <p className="text-sm mt-2 text-primary">
                     Programada para: {formatearFechaISO(procesion.fecha, {
                       weekday: 'long',
                       day: 'numeric',
-                      month: 'long'
+                      month: 'long',
                     })}
                   </p>
                 )}
