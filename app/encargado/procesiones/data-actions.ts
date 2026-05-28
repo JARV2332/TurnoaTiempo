@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 function revalidateEncargado(procesionId?: string) {
+  revalidatePath('/')
+  revalidatePath('/admin')
+  revalidatePath('/admin/procesiones')
   revalidatePath('/encargado')
   if (procesionId) {
     revalidatePath(`/encargado/procesiones/${procesionId}`)

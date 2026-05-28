@@ -1,55 +1,70 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Church, Users, Radio, MapPin } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Church, Users, Radio, MapPin, ExternalLink, Pencil } from 'lucide-react'
 import Link from 'next/link'
+import { formatearFechaISO } from '@/lib/fecha'
+import { estadoProcesionClass, estadoProcesionLabel } from '@/lib/procesion-estado'
+import type { ProcesionEstado } from '@/lib/types'
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
-  
-  // Get counts
+
   const [
     { count: hermandadesCount },
     { count: usuariosCount },
+    { count: procesionesTotal },
     { count: procesionesActivasCount },
-    { data: recentProcesiones }
+    { count: procesionesFinalizadasCount },
+    { data: recentProcesiones },
   ] = await Promise.all([
     supabase.from('hermandades').select('*', { count: 'exact', head: true }),
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
+    supabase.from('procesiones').select('*', { count: 'exact', head: true }),
     supabase.from('procesiones').select('*', { count: 'exact', head: true }).eq('estado', 'en_curso'),
+    supabase.from('procesiones').select('*', { count: 'exact', head: true }).eq('estado', 'finalizada'),
     supabase
       .from('procesiones')
       .select(`
         id,
         nombre,
         estado,
+        fecha,
         created_at,
         hermandad:hermandades(nombre)
       `)
       .order('created_at', { ascending: false })
-      .limit(5)
+      .limit(8),
   ])
 
   const stats = [
-    { 
-      label: 'Hermandades', 
-      value: hermandadesCount || 0, 
+    {
+      label: 'Hermandades',
+      value: hermandadesCount || 0,
       icon: Church,
       href: '/admin/hermandades',
-      color: 'text-primary'
+      color: 'text-primary',
     },
-    { 
-      label: 'Usuarios', 
-      value: usuariosCount || 0, 
+    {
+      label: 'Usuarios',
+      value: usuariosCount || 0,
       icon: Users,
       href: '/admin/usuarios',
-      color: 'text-secondary'
+      color: 'text-secondary',
     },
-    { 
-      label: 'Procesiones Activas', 
-      value: procesionesActivasCount || 0, 
+    {
+      label: 'Procesiones',
+      value: procesionesTotal || 0,
+      icon: MapPin,
+      href: '/admin/procesiones',
+      color: 'text-primary',
+    },
+    {
+      label: 'En curso',
+      value: procesionesActivasCount || 0,
       icon: Radio,
-      href: '#',
-      color: 'text-green-500'
+      href: '/admin/procesiones?estado=en_curso',
+      color: 'text-green-500',
     },
   ]
 
@@ -61,12 +76,11 @@ export default async function AdminDashboardPage() {
           Bienvenido al panel de administración de Turno en Tiempo Real
         </p>
       </div>
-      
-      {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Link key={stat.label} href={stat.href}>
-            <Card className="glass-card hover:border-primary/50 transition-colors">
+            <Card className="glass-card hover:border-primary/50 transition-colors h-full">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.label}
@@ -75,48 +89,65 @@ export default async function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{stat.value}</div>
+                {stat.label === 'Procesiones' && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {procesionesFinalizadasCount || 0} finalizadas
+                  </p>
+                )}
               </CardContent>
             </Card>
           </Link>
         ))}
       </div>
-      
-      {/* Recent Procesiones */}
+
       <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-primary" />
-            Procesiones Recientes
-          </CardTitle>
-          <CardDescription>
-            Últimas procesiones registradas en el sistema
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              Procesiones recientes
+            </CardTitle>
+            <CardDescription>
+              Últimas procesiones registradas — activas, programadas y pasadas
+            </CardDescription>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/procesiones">Ver todas</Link>
+          </Button>
         </CardHeader>
         <CardContent>
           {recentProcesiones && recentProcesiones.length > 0 ? (
             <div className="space-y-3">
               {recentProcesiones.map((procesion) => (
-                <div 
-                  key={procesion.id} 
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
+                <div
+                  key={procesion.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-muted/30"
                 >
-                  <div>
-                    <p className="font-medium">{procesion.nombre}</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{procesion.nombre}</p>
+                    <p className="text-sm text-muted-foreground truncate">
                       {procesion.hermandad?.nombre}
+                      {procesion.fecha &&
+                        ` · ${formatearFechaISO(procesion.fecha, { day: 'numeric', month: 'short', year: 'numeric' })}`}
                     </p>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    procesion.estado === 'en_curso' 
-                      ? 'bg-green-500/20 text-green-400'
-                      : procesion.estado === 'finalizada'
-                      ? 'bg-muted text-muted-foreground'
-                      : 'bg-primary/20 text-primary'
-                  }`}>
-                    {procesion.estado === 'en_curso' ? 'En curso' 
-                      : procesion.estado === 'finalizada' ? 'Finalizada' 
-                      : 'Programada'}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${estadoProcesionClass(procesion.estado as ProcesionEstado)}`}
+                    >
+                      {estadoProcesionLabel(procesion.estado as ProcesionEstado)}
+                    </span>
+                    <Button variant="ghost" size="icon" asChild title="Pública">
+                      <Link href={`/seguimiento/${procesion.id}`} target="_blank">
+                        <ExternalLink className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="icon" asChild title="Gestionar">
+                      <Link href={`/encargado/procesiones/${procesion.id}`}>
+                        <Pencil className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

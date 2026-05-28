@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cerrarSesion } from '@/app/auth/actions'
 import { useRouter } from 'next/navigation'
-import { LogOut, User, Menu, Shield, Church, Users, Settings, LayoutDashboard } from 'lucide-react'
+import { LogOut, User, Menu, Shield, Church, Users, Settings, LayoutDashboard, MapPin } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/procesiones', label: 'Procesiones', icon: MapPin },
   { href: '/admin/hermandades', label: 'Hermandades', icon: Church },
   { href: '/admin/usuarios', label: 'Usuarios', icon: Users },
   { href: '/admin/configuracion', label: 'Configuración', icon: Settings },

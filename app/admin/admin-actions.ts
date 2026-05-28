@@ -4,9 +4,12 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 function revalidateAdmin() {
+  revalidatePath('/')
   revalidatePath('/admin')
+  revalidatePath('/admin/procesiones')
   revalidatePath('/admin/hermandades')
   revalidatePath('/admin/usuarios')
+  revalidatePath('/encargado')
 }
 
 export async function actualizarPerfilUsuario(input: {

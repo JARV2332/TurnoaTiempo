@@ -8,11 +8,13 @@ import {
   Users, 
   Church, 
   Settings,
-  Shield
+  Shield,
+  MapPin,
 } from 'lucide-react'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/procesiones', label: 'Procesiones', icon: MapPin },
   { href: '/admin/hermandades', label: 'Hermandades', icon: Church },
   { href: '/admin/usuarios', label: 'Usuarios', icon: Users },
   { href: '/admin/configuracion', label: 'Configuración', icon: Settings },
