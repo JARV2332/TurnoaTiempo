@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Radio, Music, Play, Square, ArrowLeft, Loader2, Navigation, SkipForward, BatteryLow, BatteryMedium, BatteryFull, BatteryCharging } from 'lucide-react'
+import { Radio, Music, Play, Square, ArrowLeft, Loader2, Navigation, SkipForward, Battery, Zap } from 'lucide-react'
 import Link from 'next/link'
 import type { Procesion, Marcha, PuntoRuta } from '@/lib/types'
 import { obtenerPiezaPorTurno, obtenerPiezasPorTurno } from '@/lib/musica'
@@ -298,13 +298,9 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
                   }`}
                 >
                   {bat.cargando ? (
-                    <BatteryCharging className="h-4 w-4" />
-                  ) : bat.nivel <= 20 ? (
-                    <BatteryLow className="h-4 w-4" />
-                  ) : bat.nivel <= 50 ? (
-                    <BatteryMedium className="h-4 w-4" />
+                    <Zap className="h-4 w-4" />
                   ) : (
-                    <BatteryFull className="h-4 w-4" />
+                    <Battery className="h-4 w-4" />
                   )}
                   <span>{bat.nivel}%</span>
                   {!appControl && (
