@@ -15,5 +15,9 @@ export function distanciaMetros(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-/** Radio por defecto para considerar que el cortejo llegó al punto del turno. */
-export const RADIO_TURNO_METROS = 65
+/**
+ * Radio para considerar que el cortejo llegó al punto del turno.
+ * El GPS de móvil tiene 5-15 m de precisión en calle; 15 m es un buen equilibrio
+ * entre precisión y fiabilidad de detección.
+ */
+export const RADIO_TURNO_METROS = 5

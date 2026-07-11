@@ -55,8 +55,15 @@ El APK queda en:
 
 1. Abre la app → inicia sesión (mismas credenciales que en la web de gestores).
 2. Elige la procesión → **Panel de control**.
-3. **Iniciar procesión** → **Siguiente turno** o activa **Modo automático (GPS)**.
-4. Manual / corrección sigue disponible si hace falta.
+3. **Iniciar procesión** → el modo automático (GPS) se activa solo.
+4. Mete el teléfono en el bolsillo o en la procesión: el GPS sigue activo en segundo plano y el turno avanza solo al llegar a cada punto (~25 m de distancia).
+5. Manual / corrección sigue disponible si hace falta.
+
+## GPS en segundo plano
+
+La app usa el plugin nativo `@capacitor-community/background-geolocation` que levanta un **Foreground Service** de Android. Verás una notificación persistente "GPS activo — Turno a Tiempo" mientras la procesión esté en curso. Al llegar a cada punto de la ruta, el turno cambia automáticamente y el mapa público se actualiza en tiempo real.
+
+Permisos necesarios en Android: **Ubicación → Permitir siempre** (para segundo plano).
 
 ## Importante
 

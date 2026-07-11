@@ -26,8 +26,15 @@ export function LoginForm() {
   const searchParams = useSearchParams()
   const appControl = isAppControlSearchParams(searchParams)
 
+  const EMAIL_STORAGE_KEY = 'tat_last_email'
+
   useEffect(() => {
     persistAppControlSession()
+    // Recuperar el último email usado
+    try {
+      const savedEmail = localStorage.getItem(EMAIL_STORAGE_KEY)
+      if (savedEmail) setEmail(savedEmail)
+    } catch { /* ignorar si localStorage no está disponible */ }
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -48,6 +55,9 @@ export function LoginForm() {
         .select('role')
         .eq('id', data.user.id)
         .single()
+
+      // Guardar email para la próxima vez
+      try { localStorage.setItem(EMAIL_STORAGE_KEY, email) } catch { /* ignorar */ }
 
       if (profile?.role === 'superadmin' && !appControl) {
         router.push('/admin')

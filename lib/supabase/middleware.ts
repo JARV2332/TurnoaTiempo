@@ -41,7 +41,7 @@ export async function updateSession(request: NextRequest) {
 
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = '/auth/login'
     return NextResponse.redirect(url)
   }
 
@@ -70,7 +70,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Redirect logged-in users from login page to appropriate dashboard
-  if (user && request.nextUrl.pathname === '/login') {
+  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/auth/login')) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -78,7 +78,13 @@ export async function updateSession(request: NextRequest) {
       .single()
 
     const url = request.nextUrl.clone()
-    url.pathname = profile?.role === 'superadmin' ? '/superadmin' : '/encargado'
+    const isAppControl = request.nextUrl.searchParams.get('app') === 'control'
+    if (profile?.role === 'superadmin' && !isAppControl) {
+      url.pathname = '/superadmin'
+    } else {
+      url.pathname = '/encargado'
+      if (isAppControl) url.searchParams.set('app', 'control')
+    }
     return NextResponse.redirect(url)
   }
 

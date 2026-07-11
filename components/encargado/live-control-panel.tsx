@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Radio, Music, Play, Square, ArrowLeft, Loader2, Navigation, SkipForward } from 'lucide-react'
+import { Radio, Music, Play, Square, ArrowLeft, Loader2, Navigation, SkipForward, BatteryLow, BatteryMedium, BatteryFull, BatteryCharging } from 'lucide-react'
 import Link from 'next/link'
 import type { Procesion, Marcha, PuntoRuta } from '@/lib/types'
 import { obtenerPiezaPorTurno, obtenerPiezasPorTurno } from '@/lib/musica'
@@ -38,8 +38,8 @@ import { distanciaMetros, RADIO_TURNO_METROS } from '@/lib/geo'
 import { useGeolocationWatch } from '@/hooks/use-geolocation-watch'
 import { isAppControlClient, persistAppControlSession, withAppControl } from '@/lib/app-control'
 
-const AUTO_COOLDOWN_MS = 45_000
-const UBICACION_THROTTLE_MS = 12_000
+const AUTO_COOLDOWN_MS = 30_000
+const UBICACION_THROTTLE_MS = 5_000
 
 interface LiveControlPanelProps {
   procesion: Procesion & { hermandad?: { nombre: string; escudo_url?: string } }
@@ -60,6 +60,8 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
   const [modoAutomatico, setModoAutomatico] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [autoStatus, setAutoStatus] = useState<string | null>(null)
+  const [bateria, setBateria] = useState<{ nivel: number; cargando: boolean } | null>(null)
+  const bateriaRef = useRef<{ nivel: number; cargando: boolean } | null>(null)
 
   const lastAutoRef = useRef(0)
   const lastUbicacionRef = useRef(0)
@@ -69,10 +71,74 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
   const gpsEnabled = isLive && (modoAutomatico || appControl)
   const { position: gpsPosition, error: gpsError } = useGeolocationWatch(gpsEnabled)
 
+  // Leer nivel de batería del dispositivo (disponible en Android WebView y Chrome)
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return
+    const nav = navigator as any
+    if (!nav.getBattery) return
+
+    let battery: any = null
+
+    const actualizarBateria = () => {
+      if (!battery) return
+      const estado = { nivel: Math.round(battery.level * 100), cargando: battery.charging }
+      setBateria(estado)
+      bateriaRef.current = estado
+    }
+
+    nav.getBattery().then((b: any) => {
+      battery = b
+      actualizarBateria()
+      b.addEventListener('levelchange', actualizarBateria)
+      b.addEventListener('chargingchange', actualizarBateria)
+    })
+
+    return () => {
+      if (battery) {
+        battery.removeEventListener('levelchange', actualizarBateria)
+        battery.removeEventListener('chargingchange', actualizarBateria)
+      }
+    }
+  }, [])
+
   useEffect(() => {
     persistAppControlSession()
-    setAppControl(isAppControlClient())
-  }, [])
+    const isApp = isAppControlClient()
+    setAppControl(isApp)
+    // En la app Android activa el modo automático por defecto si la procesión ya está en curso
+    if (isApp && procesion.estado === 'en_curso') {
+      setModoAutomatico(true)
+    }
+    // Solicitar permisos de ubicación en cuanto se abre el panel de control en la app,
+    // antes de que haga falta, para que el usuario los conceda con tiempo.
+    if (isApp) {
+      const win = window as any
+      const bgGeo = win.Capacitor?.Plugins?.BackgroundGeolocation
+      const geo = win.Capacitor?.Plugins?.Geolocation
+      // Intentar con el plugin de background geolocation primero
+      if (bgGeo) {
+        bgGeo
+          .addWatcher(
+            {
+              backgroundMessage: 'Turno a Tiempo necesita tu ubicación para avanzar los turnos automáticamente.',
+              backgroundTitle: 'GPS — Turno a Tiempo',
+              requestPermissions: true,
+              stale: true, // acepta posición guardada, no fuerza nueva señal
+              distanceFilter: 999999, // no disparar callbacks hasta que se active de verdad
+            },
+            () => {},
+          )
+          .then((id: string) => {
+            // Quitar el watcher provisional: ya tenemos los permisos
+            bgGeo.removeWatcher({ id }).catch(() => {})
+          })
+          .catch(() => {})
+      } else if (geo?.requestPermissions) {
+        // Fallback: pedir solo el permiso básico de ubicación
+        geo.requestPermissions({ permissions: ['location'] }).catch(() => {})
+      }
+    }
+  }, [procesion.estado])
 
   const link = (href: string) => withAppControl(href, appControl)
 
@@ -122,7 +188,12 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
     const now = Date.now()
     if (now - lastUbicacionRef.current >= UBICACION_THROTTLE_MS) {
       lastUbicacionRef.current = now
-      void actualizarUbicacionEnVivo(procesion.id, gpsPosition.lat, gpsPosition.lng)
+      void actualizarUbicacionEnVivo(
+        procesion.id,
+        gpsPosition.lat,
+        gpsPosition.lng,
+        bateriaRef.current?.nivel ?? null,
+      )
     }
   }, [gpsPosition, isLive, procesion.id])
 
@@ -202,15 +273,57 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
             </div>
           </div>
 
-          {isLive && (
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
-              </span>
-              <span className="text-xs text-green-400 font-medium">EN VIVO</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {(() => {
+              // En la app (Capacitor): batería local en tiempo real
+              // En la web (otro encargado): batería del teléfono del campo guardada en Supabase
+              const bat = appControl && bateria
+                ? bateria
+                : !appControl && procesion.dispositivo_bateria != null
+                ? { nivel: procesion.dispositivo_bateria, cargando: false }
+                : null
+
+              if (!bat) return null
+              return (
+                <div
+                  title={appControl ? 'Batería de este dispositivo' : 'Batería del dispositivo de control'}
+                  className={`flex items-center gap-1 text-xs font-medium ${
+                    bat.cargando
+                      ? 'text-blue-400'
+                      : bat.nivel <= 15
+                      ? 'text-red-400'
+                      : bat.nivel <= 30
+                      ? 'text-yellow-400'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  {bat.cargando ? (
+                    <BatteryCharging className="h-4 w-4" />
+                  ) : bat.nivel <= 20 ? (
+                    <BatteryLow className="h-4 w-4" />
+                  ) : bat.nivel <= 50 ? (
+                    <BatteryMedium className="h-4 w-4" />
+                  ) : (
+                    <BatteryFull className="h-4 w-4" />
+                  )}
+                  <span>{bat.nivel}%</span>
+                  {!appControl && (
+                    <span className="text-[10px] text-muted-foreground ml-0.5">(campo)</span>
+                  )}
+                </div>
+              )
+            })()}
+
+            {isLive && (
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+                </span>
+                <span className="text-xs text-green-400 font-medium">EN VIVO</span>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -297,6 +410,7 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
                   <p className="text-sm font-medium">Modo automático (GPS)</p>
                   <p className="text-xs text-muted-foreground">
                     Al acercarte al punto del siguiente turno (~{RADIO_TURNO_METROS} m), se aplica solo.
+                    {appControl && ' Funciona con pantalla apagada.'}
                   </p>
                 </div>
                 <Switch checked={modoAutomatico} onCheckedChange={setModoAutomatico} />
@@ -313,9 +427,15 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
                   )}
                   {autoStatus && <p>{autoStatus}</p>}
                   {!gpsError && !gpsPosition && <p>Esperando señal GPS…</p>}
-                  <p className="text-[11px]">
-                    Mantén la app abierta y concede ubicación. En la calle puedes corregir con manual abajo.
-                  </p>
+                  {appControl ? (
+                    <p className="text-[11px]">
+                      GPS en segundo plano activo. Puedes apagar la pantalla: el turno avanzará solo al llegar al punto.
+                    </p>
+                  ) : (
+                    <p className="text-[11px]">
+                      Mantén la app abierta y concede ubicación. En la calle puedes corregir con manual abajo.
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>

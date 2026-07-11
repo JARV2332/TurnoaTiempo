@@ -84,6 +84,7 @@ export async function actualizarUbicacionEnVivo(
   procesionId: string,
   ubicacion_lat: number,
   ubicacion_lng: number,
+  dispositivo_bateria?: number | null,
 ) {
   const supabase = await createClient()
   const {
@@ -91,9 +92,12 @@ export async function actualizarUbicacionEnVivo(
   } = await supabase.auth.getUser()
   if (!user) return { ok: false as const, error: 'No autenticado' }
 
+  const payload: Record<string, unknown> = { ubicacion_lat, ubicacion_lng }
+  if (dispositivo_bateria != null) payload.dispositivo_bateria = dispositivo_bateria
+
   const { error } = await supabase
     .from('procesiones')
-    .update({ ubicacion_lat, ubicacion_lng })
+    .update(payload)
     .eq('id', procesionId)
 
   if (error) return { ok: false as const, error: error.message }

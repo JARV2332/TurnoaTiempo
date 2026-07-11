@@ -29,6 +29,7 @@ export interface Procesion {
   marcha_actual: string | null
   ubicacion_lat: number | null
   ubicacion_lng: number | null
+  dispositivo_bateria: number | null
   transmitiendo: boolean
   estado: ProcesionEstado
   created_at: string
