@@ -117,22 +117,26 @@ export function LiveControlPanel({ procesion, marchas, puntosRuta }: LiveControl
       const geo = win.Capacitor?.Plugins?.Geolocation
       // Intentar con el plugin de background geolocation primero
       if (bgGeo) {
-        bgGeo
-          .addWatcher(
-            {
-              backgroundMessage: 'Turno a Tiempo necesita tu ubicación para avanzar los turnos automáticamente.',
-              backgroundTitle: 'GPS — Turno a Tiempo',
-              requestPermissions: true,
-              stale: true, // acepta posición guardada, no fuerza nueva señal
-              distanceFilter: 999999, // no disparar callbacks hasta que se active de verdad
-            },
-            () => {},
-          )
-          .then((id: string) => {
+        ;(async () => {
+          try {
+            const id: string = await Promise.resolve(
+              bgGeo.addWatcher(
+                {
+                  backgroundMessage: 'Turno a Tiempo necesita tu ubicación para avanzar los turnos automáticamente.',
+                  backgroundTitle: 'GPS — Turno a Tiempo',
+                  requestPermissions: true,
+                  stale: true,
+                  distanceFilter: 999999,
+                },
+                () => {},
+              ),
+            )
             // Quitar el watcher provisional: ya tenemos los permisos
-            bgGeo.removeWatcher({ id }).catch(() => {})
-          })
-          .catch(() => {})
+            await Promise.resolve(bgGeo.removeWatcher({ id })).catch(() => {})
+          } catch {
+            // ignorar — solo era para pedir permisos
+          }
+        })()
       } else if (geo?.requestPermissions) {
         // Fallback: pedir solo el permiso básico de ubicación
         geo.requestPermissions({ permissions: ['location'] }).catch(() => {})

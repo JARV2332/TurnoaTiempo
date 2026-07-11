@@ -64,41 +64,43 @@ export function useGeolocationWatch(enabled: boolean) {
         return
       }
 
-      bgGeo
-        .addWatcher(
-          {
-            backgroundMessage:
-              'Turno a Tiempo sigue rastreando tu ubicación para avanzar los turnos automáticamente.',
-            backgroundTitle: 'GPS activo — Turno a Tiempo',
-            requestPermissions: true,
-            stale: false,
-            distanceFilter: 2, // metros mínimos entre actualizaciones
-          },
-          (location: any, err: any) => {
-            if (err) {
-              if (err.code === 'NOT_AUTHORIZED') {
-                setError('Permiso de ubicación denegado. Actívalo en Ajustes → Turno a Tiempo → Ubicación → Permitir siempre.')
-              } else {
-                setError(err.message ?? 'Error de geolocalización en segundo plano.')
-              }
-              return
-            }
-            if (location) {
-              setPosition({
-                lat: location.latitude,
-                lng: location.longitude,
-                accuracy: location.accuracy ?? null,
-              })
-              setError(null)
-            }
-          },
-        )
-        .then((watcherId: string) => {
+      ;(async () => {
+        try {
+          const watcherId: string = await Promise.resolve(
+            bgGeo.addWatcher(
+              {
+                backgroundMessage:
+                  'Turno a Tiempo sigue rastreando tu ubicación para avanzar los turnos automáticamente.',
+                backgroundTitle: 'GPS activo — Turno a Tiempo',
+                requestPermissions: true,
+                stale: false,
+                distanceFilter: 2,
+              },
+              (location: any, err: any) => {
+                if (err) {
+                  if (err.code === 'NOT_AUTHORIZED') {
+                    setError('Permiso de ubicación denegado. Actívalo en Ajustes → Turno a Tiempo → Ubicación → Permitir siempre.')
+                  } else {
+                    setError(err.message ?? 'Error de geolocalización en segundo plano.')
+                  }
+                  return
+                }
+                if (location) {
+                  setPosition({
+                    lat: location.latitude,
+                    lng: location.longitude,
+                    accuracy: location.accuracy ?? null,
+                  })
+                  setError(null)
+                }
+              },
+            ),
+          )
           bgWatcherIdRef.current = watcherId
-        })
-        .catch((e: any) => {
+        } catch (e: any) {
           setError(e?.message ?? 'No se pudo iniciar el GPS en segundo plano.')
-        })
+        }
+      })()
     } else {
       // — Modo navegador: browser geolocation API —
       if (!navigator.geolocation) {
