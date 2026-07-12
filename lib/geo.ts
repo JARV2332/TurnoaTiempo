@@ -20,4 +20,4 @@ export function distanciaMetros(
  * El GPS de móvil tiene 5-15 m de precisión en calle; 15 m es un buen equilibrio
  * entre precisión y fiabilidad de detección.
  */
-export const RADIO_TURNO_METROS = 5
+export const RADIO_TURNO_METROS = 20
