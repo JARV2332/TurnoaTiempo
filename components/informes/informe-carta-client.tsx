@@ -237,6 +237,20 @@ export function InformeCartaClient({ detail }: Props) {
           </div>
         </div>
 
+        {detail.testimonios && detail.testimonios.length > 0 && (
+          <>
+            <div className="section-label">Testimonios y experiencia de la Asociación</div>
+            <div className="testimonios-list">
+              {detail.testimonios.map((t, i) => (
+                <blockquote key={i} className="testimonio-card">
+                  <p className="testimonio-quote">&ldquo;{t.quote}&rdquo;</p>
+                  <footer className="testimonio-source">— {t.source}</footer>
+                </blockquote>
+              ))}
+            </div>
+          </>
+        )}
+
         <div className="carta-body">
           {detail.slug === 'virgen-del-socorro-catedral-2026' ? (
             <>

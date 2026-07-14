@@ -1,4 +1,4 @@
-export type InformeSlug = 'virgen-del-socorro-catedral-2026'
+export type InformeSlug = 'virgen-del-socorro-catedral-2026' | 'virgen-del-carmen-santuario-2026'
 
 export type InformeListItem = {
   slug: InformeSlug
@@ -54,6 +54,7 @@ export type InformeDetail = {
     chartTitle: string
     rows: OsRow[]
   }
+  testimonios?: Array<{ quote: string; source: string }>
   cierre: string[]
   firma: {
     nombre: string
