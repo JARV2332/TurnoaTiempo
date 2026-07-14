@@ -2,7 +2,7 @@ import type { InformeDetail, InformeListItem } from './types'
 
 export const informeVirgenCarmenList: InformeListItem = {
   slug: 'virgen-del-carmen-santuario-2026',
-  title: 'Virgen del Carmen — Santuario de Santa Teresa',
+  title: 'Cofradía del Carmen — Rectoría Santa Teresa',
   excerpt:
     'Informe de impacto digital del cortejo procesional (Julio 2026). 1,840 usuarios únicos, 4,250 visualizaciones y alcance internacional.',
   dateLabel: 'Julio 2026',
@@ -11,17 +11,17 @@ export const informeVirgenCarmenList: InformeListItem = {
 export const informeVirgenCarmenDetail: InformeDetail = {
   slug: 'virgen-del-carmen-santuario-2026',
   meta: {
-    title: 'Informe — Virgen del Carmen | Turno a Tiempo',
+    title: 'Informe — Cofradía del Carmen | Turno a Tiempo',
     description:
-      'Resultados y métricas del seguimiento en vivo del Cortejo Procesional de la Santísima Virgen del Carmen, Santuario de Santa Teresa, Julio 2026.',
+      'Resultados y métricas del seguimiento en vivo del Cortejo Procesional de la Cofradía del Carmen, Rectoría Santa Teresa, Julio 2026.',
     kicker: 'Turno a Tiempo — Informe de Impacto Digital',
     headline: 'Resultados y métricas del seguimiento en vivo',
     dateLocationLine:
-      'Guatemala, Julio 2026 · Cortejo Procesional de la Santísima Virgen del Carmen — Santuario de Santa Teresa',
+      'Guatemala, Julio 2026 · Cortejo Procesional — Cofradía del Carmen, Rectoría Santa Teresa',
   },
   saludo: [
-    'Estimados miembros de la Junta Directiva, Comisión de Logística y Vocalía de Comunicación,',
-    'Es un honor presentarles los resultados del acompañamiento tecnológico realizado durante el Cortejo Procesional de la Santísima Virgen del Carmen. La plataforma Turno a Tiempo registró una respuesta extraordinaria de la comunidad devota, reflejando el interés y la participación activa de cientos de fieles que siguieron el recorrido en tiempo real.',
+    'Estimados miembros de la Junta Directiva y Cofrades de la Cofradía del Carmen,',
+    'Es un honor presentarles los resultados del acompañamiento tecnológico realizado durante el Cortejo Procesional de la Cofradía del Carmen en la Rectoría Santa Teresa. La plataforma Turno a Tiempo registró una respuesta extraordinaria de la comunidad devota, reflejando el interés y la participación activa de cientos de fieles que siguieron el recorrido en tiempo real.',
   ],
   kpis: [
     { label: 'Visualizaciones de Página', value: '4,250', delta: '↑ +940% Crecimiento' },
