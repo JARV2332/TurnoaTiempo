@@ -227,6 +227,104 @@ export async function importarMarchasBulk(
   return { ok: true as const, marchas: data }
 }
 
+export async function importarProgramaCompleto(
+  procesionId: string,
+  turnos: {
+    label: string
+    direccion: string
+    tipo: 'ida' | 'regreso'
+    lat: number | null
+    lng: number | null
+    piezas: { nombre: string; autor: string | null }[]
+  }[],
+  options?: { reemplazar?: boolean },
+) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false as const, error: 'No autenticado' }
+  if (!turnos.length) return { ok: false as const, error: 'No hay turnos para importar' }
+
+  const reemplazar = options?.reemplazar !== false
+
+  if (reemplazar) {
+    const [{ error: delMarchas }, { error: delPuntos }] = await Promise.all([
+      supabase.from('marchas').delete().eq('procesion_id', procesionId),
+      supabase.from('puntos_ruta').delete().eq('procesion_id', procesionId),
+    ])
+    if (delMarchas) return { ok: false as const, error: delMarchas.message }
+    if (delPuntos) return { ok: false as const, error: delPuntos.message }
+  }
+
+  let ordenIda = 0
+  let ordenRegreso = 0
+  if (!reemplazar) {
+    const { data: existentes } = await supabase
+      .from('puntos_ruta')
+      .select('tipo, orden')
+      .eq('procesion_id', procesionId)
+    for (const p of existentes || []) {
+      if (p.tipo === 'ida') ordenIda = Math.max(ordenIda, (p.orden ?? 0) + 1)
+      else ordenRegreso = Math.max(ordenRegreso, (p.orden ?? 0) + 1)
+    }
+  }
+
+  const puntosPayload = turnos.map((t) => {
+    const orden = t.tipo === 'ida' ? ordenIda++ : ordenRegreso++
+    return {
+      procesion_id: procesionId,
+      direccion: t.direccion?.trim() || t.label || `Turno`,
+      tipo: t.tipo,
+      lat: t.lat,
+      lng: t.lng,
+      orden,
+    }
+  })
+
+  const { error: puntosError } = await supabase.from('puntos_ruta').insert(puntosPayload)
+  if (puntosError) return { ok: false as const, error: puntosError.message }
+
+  let ordenMarcha = 0
+  if (!reemplazar) {
+    const { count } = await supabase
+      .from('marchas')
+      .select('*', { count: 'exact', head: true })
+      .eq('procesion_id', procesionId)
+    ordenMarcha = count ?? 0
+  }
+
+  const marchasPayload = turnos.flatMap((t, turnoIdx) =>
+    t.piezas
+      .filter((p) => p.nombre?.trim())
+      .map((p) => ({
+        procesion_id: procesionId,
+        nombre: p.nombre.trim(),
+        autor: p.autor?.trim() || null,
+        turno: turnoIdx + 1,
+        orden: ordenMarcha++,
+      })),
+  )
+
+  if (marchasPayload.length > 0) {
+    const { error: marchasError } = await supabase.from('marchas').insert(marchasPayload)
+    if (marchasError) return { ok: false as const, error: marchasError.message }
+  }
+
+  const { error: procError } = await supabase
+    .from('procesiones')
+    .update({ total_turnos: turnos.length })
+    .eq('id', procesionId)
+  if (procError) return { ok: false as const, error: procError.message }
+
+  revalidateEncargado(procesionId)
+  return {
+    ok: true as const,
+    turnos: turnos.length,
+    piezas: marchasPayload.length,
+  }
+}
+
 export async function insertarPuntoRuta(input: {
   procesionId: string
   direccion: string

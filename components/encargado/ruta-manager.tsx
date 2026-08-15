@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { insertarPuntoRuta, eliminarPuntoRuta } from '@/app/encargado/procesiones/data-actions'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ import {
 import { Plus, MapPin, GripVertical, Trash2, Navigation } from 'lucide-react'
 import type { Marcha, PuntoRuta } from '@/lib/types'
 import { RutaMapEditor } from './ruta-map-editor'
+import { ImportProgramaDialog } from '@/components/encargado/import-programa-dialog'
 import { obtenerPiezaPorTurno } from '@/lib/musica'
 
 interface RutaManagerProps {
@@ -37,6 +38,10 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
   const [useMapEditor, setUseMapEditor] = useState(true)
   const [pendingClick, setPendingClick] = useState<{ lat: number; lng: number } | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    setPuntos(initialPuntos)
+  }, [initialPuntos])
 
   const marchasPreview = useMemo(() => marchas, [marchas])
 
@@ -112,20 +117,27 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
           </CardTitle>
           <CardDescription>
             Haz clic para crear puntos y ver la línea unida. Cada punto se numera como turno.
+            También puedes importar el programa completo (ruta + sones/alabados).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-muted-foreground">
               Modo: {useMapEditor ? 'Mapa' : 'Manual'}
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setUseMapEditor((v) => !v)}
-            >
-              Cambiar a {useMapEditor ? 'Manual' : 'Mapa'}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <ImportProgramaDialog
+                procesionId={procesionId}
+                hasExistingData={puntos.length > 0}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setUseMapEditor((v) => !v)}
+              >
+                Cambiar a {useMapEditor ? 'Manual' : 'Mapa'}
+              </Button>
+            </div>
           </div>
 
           {useMapEditor && (

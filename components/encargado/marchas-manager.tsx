@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   insertarMarcha,
@@ -20,6 +20,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, Music, Trash2 } from 'lucide-react'
 import { ImportMarchasDialog } from '@/components/encargado/import-marchas-dialog'
+import { ImportProgramaDialog } from '@/components/encargado/import-programa-dialog'
 import type { Marcha } from '@/lib/types'
 
 interface MarchasManagerProps {
@@ -39,6 +40,11 @@ export function MarchasManager({
   const [marchas, setMarchas] = useState<Marcha[]>(initialMarchas)
   const [newMarcha, setNewMarcha] = useState({ nombres: '', autor: '', turnoInicial: '1' })
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    setMarchas(initialMarchas)
+  }, [initialMarchas])
+
   const maxTurnoExistente = marchas.reduce((max, m) => Math.max(max, m.turno ?? 0), 0)
   const turnosFallback = Array.from(
     { length: Math.max(totalTurnos, maxTurnoExistente, 1) },
@@ -100,8 +106,11 @@ export function MarchasManager({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Mass import button */}
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
+            <ImportProgramaDialog
+              procesionId={procesionId}
+              hasExistingData={marchas.length > 0}
+            />
             <ImportMarchasDialog procesionId={procesionId} existingCount={marchas.length} />
           </div>
 
