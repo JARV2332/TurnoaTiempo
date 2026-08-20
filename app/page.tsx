@@ -2,13 +2,13 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { MapPin, Radio, Users, Shield, History } from 'lucide-react'
+import { MapPin, Radio, Users, Shield, History, CalendarClock } from 'lucide-react'
 import { formatearFechaISO } from '@/lib/fecha'
 
 export default async function HomePage() {
   const supabase = await createClient()
-  
-  const [{ data: procesiones }, { data: historial }] = await Promise.all([
+
+  const [{ data: procesiones }, { data: proximas }, { data: historial }] = await Promise.all([
     supabase
       .from('procesiones')
       .select(`
@@ -35,6 +35,20 @@ export default async function HomePage() {
           escudo_url
         )
       `)
+      .eq('estado', 'programada')
+      .order('fecha', { ascending: true }),
+    supabase
+      .from('procesiones')
+      .select(`
+        id,
+        nombre,
+        estado,
+        fecha,
+        hermandad:hermandades(
+          nombre,
+          escudo_url
+        )
+      `)
       .eq('estado', 'finalizada')
       .order('fecha', { ascending: false })
       .limit(48),
@@ -42,24 +56,23 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-svh">
-      {/* Hero Section */}
       <section className="relative flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
-        
+
         <div className="relative z-10 flex flex-col items-center gap-6 max-w-2xl">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/30">
             <Radio className="h-10 w-10 text-primary" />
           </div>
-          
+
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-balance">
             Turno en Tiempo Real
           </h1>
-          
+
           <p className="text-lg text-muted-foreground text-pretty max-w-lg">
-            Sigue el recorrido de las procesiones de Semana Santa en tiempo real. 
+            Sigue el recorrido de las procesiones de Semana Santa en tiempo real.
             Visualiza la ubicación, el turno actual y la marcha que suena.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
               <Link href="#procesiones">
@@ -76,8 +89,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-      
-      {/* Active Procesiones Section */}
+
       <section id="procesiones" className="px-6 py-16">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col items-center text-center mb-10">
@@ -88,7 +100,7 @@ export default async function HomePage() {
               Selecciona una procesión para seguir su recorrido en tiempo real
             </p>
           </div>
-          
+
           {procesiones && procesiones.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {procesiones.map((procesion) => (
@@ -96,9 +108,9 @@ export default async function HomePage() {
                   <Card className="glass-card hover:border-primary/50 transition-colors cursor-pointer h-full">
                     <CardHeader className="flex flex-row items-center gap-4">
                       {procesion.hermandad?.escudo_url ? (
-                        <img 
-                          src={procesion.hermandad.escudo_url} 
-                          alt="" 
+                        <img
+                          src={procesion.hermandad.escudo_url}
+                          alt=""
                           className="h-12 w-12 rounded-full object-cover"
                         />
                       ) : (
@@ -139,6 +151,9 @@ export default async function HomePage() {
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   No hay ninguna procesión en curso en este momento.
+                  {proximas && proximas.length > 0
+                    ? ' Revisa las próximas más abajo.'
+                    : ''}
                 </p>
               </CardContent>
             </Card>
@@ -146,7 +161,71 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Historial */}
+      {proximas && proximas.length > 0 && (
+        <section id="proximas" className="px-6 py-16 border-t border-border/50">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex flex-col items-center text-center mb-10">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-4">
+                <CalendarClock className="h-6 w-6 text-primary" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                Próximas procesiones
+              </h2>
+              <p className="text-muted-foreground max-w-lg">
+                Procesiones programadas. Entra para ver el recorrido y la información antes del cortejo.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {proximas.map((procesion) => (
+                <Link key={procesion.id} href={`/seguimiento/${procesion.id}`}>
+                  <Card className="glass-card hover:border-primary/40 transition-colors cursor-pointer h-full">
+                    <CardHeader className="flex flex-row items-center gap-4">
+                      {procesion.hermandad?.escudo_url ? (
+                        <img
+                          src={procesion.hermandad.escudo_url}
+                          alt=""
+                          className="h-12 w-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Users className="h-6 w-6 text-primary" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg truncate">
+                          {procesion.nombre}
+                        </CardTitle>
+                        <CardDescription className="truncate">
+                          {procesion.hermandad?.nombre}
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-medium text-primary uppercase tracking-wide">
+                          Programada
+                        </span>
+                        {procesion.fecha && (
+                          <span className="text-sm text-muted-foreground">
+                            {formatearFechaISO(procesion.fecha, {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {historial && historial.length > 0 && (
         <section id="historial" className="px-6 py-16 border-t border-border/50 bg-muted/20">
           <div className="max-w-5xl mx-auto">
@@ -211,8 +290,7 @@ export default async function HomePage() {
           </div>
         </section>
       )}
-      
-      {/* Features Section */}
+
       <section className="px-6 py-16 border-t border-border/50">
         <div className="max-w-5xl mx-auto">
           <div className="grid gap-8 md:grid-cols-3">
@@ -225,7 +303,7 @@ export default async function HomePage() {
                 Visualiza la posición exacta de la procesión sobre el mapa con actualizaciones en directo.
               </p>
             </div>
-            
+
             <div className="flex flex-col items-center text-center">
               <div className="h-14 w-14 rounded-full bg-secondary/10 flex items-center justify-center mb-4">
                 <Radio className="h-7 w-7 text-secondary" />
@@ -235,7 +313,7 @@ export default async function HomePage() {
                 Conoce qué turno está sonando y qué marcha está interpretando la banda en cada momento.
               </p>
             </div>
-            
+
             <div className="flex flex-col items-center text-center">
               <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <Users className="h-7 w-7 text-primary" />
@@ -248,12 +326,16 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-      
-      {/* Footer */}
+
       <footer className="px-6 py-8 border-t border-border/50">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>Turno en Tiempo Real</p>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {proximas && proximas.length > 0 && (
+              <Link href="#proximas" className="hover:text-primary transition-colors">
+                Próximas procesiones
+              </Link>
+            )}
             {historial && historial.length > 0 && (
               <Link href="#historial" className="hover:text-primary transition-colors">
                 Procesiones pasadas
