@@ -54,7 +54,7 @@ export function parseProgramaBulkText(text: string): ProgramaImportPayload {
       lower.startsWith('turno|') ||
       lower.startsWith('turno,') ||
       (lower.includes('melod') && lower.includes('autor')) ||
-      (lower.startsWith('turno') && lower.includes('dirección'))
+      (lower.startsWith('turno') && (lower.includes('direcci') || lower.includes('marcha')))
     ) {
       continue
     }
