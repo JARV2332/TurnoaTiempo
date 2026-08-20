@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useTheme } from 'next-themes'
 import type { PuntoRuta, Marcha } from '@/lib/types'
 import { obtenerPiezasPorTurno } from '@/lib/musica'
+import { lineaManhattan, separarMarcadoresCercanos } from '@/lib/geo'
 
 type RutaTipo = 'ida' | 'regreso'
 
@@ -32,7 +33,7 @@ export function RutaMapEditor({
   tipo,
   marchas,
   onMapClick,
-  heightClassName = 'h-[420px]',
+  heightClassName = 'h-[480px]',
 }: RutaMapEditorProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<any>(null)
@@ -69,14 +70,18 @@ export function RutaMapEditor({
     [puntos],
   )
 
-  // Init map once (o al cambiar tema)
+  const lineColor = tipo === 'ida' ? '#7c3aed' : '#f59e0b'
+  const markerBg = tipo === 'ida' ? '#7c3aed' : '#fbbf24'
+  const markerBorder = tipo === 'ida' ? '#4c1d95' : '#92400e'
+  const markerFg = tipo === 'ida' ? '#fff' : '#111827'
+
   useEffect(() => {
     const el = mapContainer.current
     if (!el) return
 
     let cancelled = false
 
-    const ensureLineLayer = (m: any) => {
+    const ensureLayers = (m: any) => {
       if (!m.getSource('ruta-linea')) {
         m.addSource('ruta-linea', {
           type: 'geojson',
@@ -87,6 +92,19 @@ export function RutaMapEditor({
           },
         })
       }
+      if (!m.getLayer('ruta-linea-halo')) {
+        m.addLayer({
+          id: 'ruta-linea-halo',
+          type: 'line',
+          source: 'ruta-linea',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': '#ffffff',
+            'line-width': 8,
+            'line-opacity': 0.55,
+          },
+        })
+      }
       if (!m.getLayer('ruta-linea')) {
         m.addLayer({
           id: 'ruta-linea',
@@ -94,9 +112,9 @@ export function RutaMapEditor({
           source: 'ruta-linea',
           layout: { 'line-join': 'round', 'line-cap': 'round' },
           paint: {
-            'line-color': tipo === 'ida' ? '#7c3aed' : '#fbbf24',
-            'line-width': 4,
-            'line-opacity': 0.85,
+            'line-color': lineColor,
+            'line-width': 5,
+            'line-opacity': 0.95,
           },
         })
       }
@@ -142,9 +160,7 @@ export function RutaMapEditor({
 
       map.current.on('load', () => {
         if (!map.current || cancelled) return
-        ensureLineLayer(map.current)
-        // Disparar redibujado de marcadores
-        map.current._rutaReady = true
+        ensureLayers(map.current)
         el.dispatchEvent(new Event('ruta-map-ready'))
       })
     }
@@ -186,56 +202,66 @@ export function RutaMapEditor({
         map.current = null
       }
     }
-    // Solo reiniciar al montar o cambiar tema (no en cada click/centro)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedTheme])
 
-  // Actualizar color de línea si cambia tipo
   useEffect(() => {
     if (!map.current?.getLayer?.('ruta-linea')) return
-    map.current.setPaintProperty(
-      'ruta-linea',
-      'line-color',
-      tipo === 'ida' ? '#7c3aed' : '#fbbf24',
-    )
-  }, [tipo])
+    map.current.setPaintProperty('ruta-linea', 'line-color', lineColor)
+  }, [lineColor])
 
-  // Marcadores + línea + fitBounds
   useEffect(() => {
     const draw = () => {
-      if (!map.current) return
+      if (!map.current) return false
       const maplibregl = (window as any).maplibregl
-      if (!maplibregl) return
-
-      if (!map.current.getSource('ruta-linea')) {
-        // Mapa aún no terminó de cargar
-        return false
-      }
+      if (!maplibregl) return false
+      if (!map.current.getSource('ruta-linea')) return false
 
       markers.current.forEach((m) => m.remove?.())
       markers.current = []
 
-      const coords: [number, number][] = []
+      const basePts = puntosOrdenados.map((p) => ({ lat: p.lat, lng: p.lng }))
+      const lineCoords = lineaManhattan(basePts)
+      const markerPts = separarMarcadoresCercanos(basePts, 32)
+
+      const source = map.current.getSource('ruta-linea')
+      if (source?.setData) {
+        source.setData({
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates:
+              lineCoords.length >= 2
+                ? lineCoords
+                : lineCoords.length === 1
+                  ? [lineCoords[0], lineCoords[0]]
+                  : [],
+          },
+        })
+      }
+
       puntosOrdenados.forEach((p, idx) => {
         const turno = tipo === 'ida' ? idx + 1 : totalIda + idx + 1
         const piezas = obtenerPiezasPorTurno(marchas, turno)
-        coords.push([p.lng, p.lat])
+        const display = markerPts[idx] || p
 
         const el = document.createElement('div')
         el.style.cssText = `
-          width: 28px;
-          height: 28px;
+          width: 22px;
+          height: 22px;
           border-radius: 999px;
-          background: ${tipo === 'ida' ? '#7c3aed' : '#fbbf24'};
-          border: 3px solid ${tipo === 'ida' ? '#4c1d95' : '#92400e'};
+          background: ${markerBg};
+          border: 2px solid ${markerBorder};
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 700;
-          color: ${tipo === 'ida' ? 'white' : '#111827'};
-          box-shadow: 0 1px 4px rgba(0,0,0,.35);
+          color: ${markerFg};
+          box-shadow: 0 1px 3px rgba(0,0,0,.3);
           cursor: pointer;
+          user-select: none;
         `
         el.textContent = String(turno)
 
@@ -243,12 +269,12 @@ export function RutaMapEditor({
           ? piezas
               .map(
                 (m) =>
-                  `<div style="margin-top:4px;font-size:12px;"><strong>${m.nombre}</strong>${
+                  `<div style="margin-top:3px;font-size:12px;"><strong>${m.nombre}</strong>${
                     m.autor ? ` — ${m.autor}` : ''
                   }</div>`,
               )
               .join('')
-          : '<div style="margin-top:4px;font-size:12px;color:#6b7280;">Sin marcha</div>'
+          : '<div style="margin-top:3px;font-size:12px;color:#6b7280;">Sin marcha</div>'
 
         const popupHtml = `
           <div style="padding:8px; color:#111827; max-width:260px;">
@@ -258,37 +284,24 @@ export function RutaMapEditor({
           </div>
         `
 
-        const marker = new maplibregl.Marker({ element: el })
-          .setLngLat([p.lng, p.lat])
-          .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(popupHtml))
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([display.lng, display.lat])
+          .setPopup(new maplibregl.Popup({ offset: 14 }).setHTML(popupHtml))
           .addTo(map.current)
 
         markers.current.push(marker)
       })
 
-      const source = map.current.getSource('ruta-linea')
-      if (source?.setData) {
-        source.setData({
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: coords.length >= 2 ? coords : coords.length === 1 ? [...coords, ...coords] : [],
-          },
-        })
-      }
-
-      if (coords.length === 1) {
-        map.current.flyTo({ center: coords[0], zoom: 16 })
-      } else if (coords.length > 1) {
-        const bounds = coords.reduce(
+      if (lineCoords.length === 1) {
+        map.current.flyTo({ center: lineCoords[0], zoom: 16 })
+      } else if (lineCoords.length > 1) {
+        const bounds = lineCoords.reduce(
           (b, c) => b.extend(c),
-          new maplibregl.LngLatBounds(coords[0], coords[0]),
+          new maplibregl.LngLatBounds(lineCoords[0], lineCoords[0]),
         )
-        map.current.fitBounds(bounds, { padding: 48, maxZoom: 16, duration: 600 })
+        map.current.fitBounds(bounds, { padding: 56, maxZoom: 15.5, duration: 500 })
       }
 
-      // Fix tamaño si el contenedor cambió
       map.current.resize?.()
       return true
     }
@@ -296,11 +309,8 @@ export function RutaMapEditor({
     if (draw()) return
 
     const el = mapContainer.current
-    const onReady = () => {
-      draw()
-    }
+    const onReady = () => draw()
     el?.addEventListener('ruta-map-ready', onReady)
-
     const poll = setInterval(() => {
       if (draw()) clearInterval(poll)
     }, 150)
@@ -309,14 +319,14 @@ export function RutaMapEditor({
       el?.removeEventListener('ruta-map-ready', onReady)
       clearInterval(poll)
     }
-  }, [marchas, puntosOrdenados, tipo, totalIda])
+  }, [marchas, puntosOrdenados, tipo, totalIda, markerBg, markerBorder, markerFg])
 
   return (
     <div className={`relative w-full ${heightClassName} rounded-lg overflow-hidden border border-border/50`}>
       <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
       <div className="absolute bottom-3 left-3 text-xs text-muted-foreground bg-background/80 backdrop-blur px-2 py-1 rounded">
         {puntosOrdenados.length > 0
-          ? `${puntosOrdenados.length} puntos en mapa (${tipo})`
+          ? `${puntosOrdenados.length} turnos · línea por calles (${tipo})`
           : `Click en el mapa para añadir un punto (${tipo})`}
       </div>
     </div>

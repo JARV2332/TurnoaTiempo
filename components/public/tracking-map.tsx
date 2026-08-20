@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import type { Procesion, PuntoRuta } from '@/lib/types'
 import { construirTurnosRuta } from '@/lib/turnos'
+import { lineaManhattan } from '@/lib/geo'
 
 interface TrackingMapProps {
   procesion: Procesion
@@ -12,8 +13,8 @@ interface TrackingMapProps {
   escudoUrl?: string
 }
 
-// Default center (Seville, Spain - heart of Semana Santa)
-const DEFAULT_CENTER = { lat: 37.3891, lng: -5.9845 }
+// Centro por defecto: Ciudad de Guatemala zona 1
+const DEFAULT_CENTER = { lat: 14.6407, lng: -90.5133 }
 const DEFAULT_ZOOM = 15
 const FOCUS_ZOOM = 18
 
@@ -203,13 +204,12 @@ export function TrackingMap({ procesion, puntosRuta, avatarUrl, escudoUrl }: Tra
 
     const turno = typeof procesion.turno_actual === 'number' ? procesion.turno_actual : 0
     const hasta = Math.min(Math.max(turno, 0) + 1, puntosIda.length)
-    const progressCoords =
-      hasta >= 2
-        ? puntosIda.slice(0, hasta).map((p) => [p.lng!, p.lat!] as [number, number])
+    const progressPts =
+      hasta >= 1
+        ? puntosIda.slice(0, hasta).map((p) => ({ lat: p.lat!, lng: p.lng! }))
         : []
-
-    const p0 = puntosIda[0]
-    const firstPos: [number, number] = [p0.lng!, p0.lat!]
+    const progressCoords = lineaManhattan(progressPts)
+    const firstPos: [number, number] = [puntosIda[0].lng!, puntosIda[0].lat!]
     const coordinates =
       progressCoords.length >= 2 ? progressCoords : [firstPos, firstPos]
 
@@ -233,7 +233,9 @@ export function TrackingMap({ procesion, puntosRuta, avatarUrl, escudoUrl }: Tra
 
     // Ruta completa de ida (línea fija, más tenue)
     if (puntosIda.length > 1) {
-      const fullCoords = puntosIda.map((p) => [p.lng!, p.lat!] as [number, number])
+      const fullCoords = lineaManhattan(
+        puntosIda.map((p) => ({ lat: p.lat!, lng: p.lng! })),
+      )
       map.current.addSource('route-ida', {
         type: 'geojson',
         data: {
@@ -257,10 +259,11 @@ export function TrackingMap({ procesion, puntosRuta, avatarUrl, escudoUrl }: Tra
       // Línea de progreso (se va pintando según el turno)
       const turno = typeof procesion.turno_actual === 'number' ? procesion.turno_actual : 0
       const hasta = Math.min(Math.max(turno, 0) + 1, puntosIda.length)
-      const progressCoords =
-        hasta >= 2
-          ? puntosIda.slice(0, hasta).map((p) => [p.lng!, p.lat!] as [number, number])
+      const progressPts =
+        hasta >= 1
+          ? puntosIda.slice(0, hasta).map((p) => ({ lat: p.lat!, lng: p.lng! }))
           : []
+      const progressCoords = lineaManhattan(progressPts)
 
       map.current.addSource('route-ida-progress', {
         type: 'geojson',
@@ -269,7 +272,8 @@ export function TrackingMap({ procesion, puntosRuta, avatarUrl, escudoUrl }: Tra
           properties: {},
           geometry: {
             type: 'LineString',
-            coordinates: progressCoords.length >= 2 ? progressCoords : [fullCoords[0], fullCoords[0]],
+            coordinates:
+              progressCoords.length >= 2 ? progressCoords : [fullCoords[0], fullCoords[0]],
           },
         },
       })
@@ -294,9 +298,11 @@ export function TrackingMap({ procesion, puntosRuta, avatarUrl, escudoUrl }: Tra
           properties: {},
           geometry: {
             type: 'LineString',
-            coordinates: puntosRegreso.map(p => [p.lng!, p.lat!])
-          }
-        }
+            coordinates: lineaManhattan(
+              puntosRegreso.map((p) => ({ lat: p.lat!, lng: p.lng! })),
+            ),
+          },
+        },
       })
       
       map.current.addLayer({
