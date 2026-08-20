@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useTheme } from 'next-themes'
 import type { PuntoRuta, Marcha } from '@/lib/types'
-import { obtenerPiezaPorTurno } from '@/lib/musica'
+import { obtenerPiezasPorTurno } from '@/lib/musica'
 
 type RutaTipo = 'ida' | 'regreso'
 
@@ -15,9 +15,17 @@ export interface RutaMapEditorProps {
   heightClassName?: string
 }
 
-// Centro aproximado de Guatemala Z1 (solo fallback visual)
 const DEFAULT_CENTER = { lat: 14.6407, lng: -90.5133 }
 const DEFAULT_ZOOM = 15
+
+function toNum(v: unknown): number | null {
+  if (typeof v === 'number' && Number.isFinite(v)) return v
+  if (typeof v === 'string' && v.trim()) {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }
+  return null
+}
 
 export function RutaMapEditor({
   puntos,
@@ -29,7 +37,12 @@ export function RutaMapEditor({
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<any>(null)
   const markers = useRef<any[]>([])
+  const onMapClickRef = useRef(onMapClick)
   const { resolvedTheme } = useTheme()
+
+  useEffect(() => {
+    onMapClickRef.current = onMapClick
+  }, [onMapClick])
 
   const tiles =
     resolvedTheme === 'light'
@@ -46,29 +59,60 @@ export function RutaMapEditor({
 
   const puntosOrdenados = useMemo(() => {
     return puntos
-      .filter((p) => p.tipo === tipo && p.lat != null && p.lng != null)
+      .filter((p) => p.tipo === tipo && toNum(p.lat) != null && toNum(p.lng) != null)
       .sort((a, b) => a.orden - b.orden)
+      .map((p) => ({ ...p, lat: toNum(p.lat)!, lng: toNum(p.lng)! }))
   }, [puntos, tipo])
+
   const totalIda = useMemo(
-    () => puntos.filter((p) => p.tipo === 'ida' && p.lat != null && p.lng != null).length,
+    () => puntos.filter((p) => p.tipo === 'ida' && toNum(p.lat) != null && toNum(p.lng) != null).length,
     [puntos],
   )
 
-  const center = useMemo(() => {
-    if (puntosOrdenados.length > 0) {
-      return { lat: puntosOrdenados[0].lat!, lng: puntosOrdenados[0].lng! }
-    }
-    return DEFAULT_CENTER
-  }, [puntosOrdenados])
-
-  // Init map (MapLibre via unpkg; reusa el mismo script si ya existe)
+  // Init map once (o al cambiar tema)
   useEffect(() => {
     const el = mapContainer.current
     if (!el) return
 
+    let cancelled = false
+
+    const ensureLineLayer = (m: any) => {
+      if (!m.getSource('ruta-linea')) {
+        m.addSource('ruta-linea', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: { type: 'LineString', coordinates: [] },
+          },
+        })
+      }
+      if (!m.getLayer('ruta-linea')) {
+        m.addLayer({
+          id: 'ruta-linea',
+          type: 'line',
+          source: 'ruta-linea',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': tipo === 'ida' ? '#7c3aed' : '#fbbf24',
+            'line-width': 4,
+            'line-opacity': 0.85,
+          },
+        })
+      }
+    }
+
     const runInit = () => {
+      if (cancelled) return
       const maplibregl = (window as any).maplibregl
-      if (!maplibregl || map.current) return
+      if (!maplibregl) return
+
+      if (map.current) {
+        markers.current.forEach((mk) => mk.remove?.())
+        markers.current = []
+        map.current.remove()
+        map.current = null
+      }
 
       map.current = new maplibregl.Map({
         container: el,
@@ -84,7 +128,7 @@ export function RutaMapEditor({
           },
           layers: [{ id: 'osm', type: 'raster', source: 'osm', minzoom: 0, maxzoom: 19 }],
         },
-        center: [center.lng, center.lat],
+        center: [DEFAULT_CENTER.lng, DEFAULT_CENTER.lat],
         zoom: DEFAULT_ZOOM,
       })
 
@@ -93,39 +137,20 @@ export function RutaMapEditor({
       map.current.on('click', (e: any) => {
         const lat = e.lngLat?.lat
         const lng = e.lngLat?.lng
-        if (typeof lat === 'number' && typeof lng === 'number') onMapClick(lat, lng)
+        if (typeof lat === 'number' && typeof lng === 'number') onMapClickRef.current(lat, lng)
       })
 
       map.current.on('load', () => {
-        // Source/layer para la línea del recorrido
-        map.current.addSource('ruta-linea', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: {},
-            geometry: { type: 'LineString', coordinates: [] },
-          },
-        })
-        map.current.addLayer({
-          id: 'ruta-linea',
-          type: 'line',
-          source: 'ruta-linea',
-          layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: {
-            'line-color': tipo === 'ida' ? '#7c3aed' : '#fbbf24',
-            'line-width': 4,
-            'line-opacity': 0.85,
-          },
-        })
+        if (!map.current || cancelled) return
+        ensureLineLayer(map.current)
+        // Disparar redibujado de marcadores
+        map.current._rutaReady = true
+        el.dispatchEvent(new Event('ruta-map-ready'))
       })
     }
 
     const win = window as any
     if (win.maplibregl) {
-      if (map.current) {
-        map.current.remove()
-        map.current = null
-      }
       runInit()
     } else if (document.querySelector('script[data-maplibre]')) {
       const t = setInterval(() => {
@@ -134,7 +159,10 @@ export function RutaMapEditor({
           runInit()
         }
       }, 100)
-      return () => clearInterval(t)
+      return () => {
+        cancelled = true
+        clearInterval(t)
+      }
     } else {
       const link = document.createElement('link')
       link.href = 'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css'
@@ -150,69 +178,136 @@ export function RutaMapEditor({
     }
 
     return () => {
-      // No destruimos el mapa aquí para evitar parpadeos si el usuario cambia tabs;
-      // se limpia en hot reload / navegación.
+      cancelled = true
+      markers.current.forEach((mk) => mk.remove?.())
+      markers.current = []
+      if (map.current) {
+        map.current.remove()
+        map.current = null
+      }
     }
-  }, [center.lat, center.lng, onMapClick, tipo, resolvedTheme])
+    // Solo reiniciar al montar o cambiar tema (no en cada click/centro)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedTheme])
 
-  // Update markers + line when points change
+  // Actualizar color de línea si cambia tipo
   useEffect(() => {
-    if (!map.current) return
-    const maplibregl = (window as any).maplibregl
-    if (!maplibregl) return
+    if (!map.current?.getLayer?.('ruta-linea')) return
+    map.current.setPaintProperty(
+      'ruta-linea',
+      'line-color',
+      tipo === 'ida' ? '#7c3aed' : '#fbbf24',
+    )
+  }, [tipo])
 
-    // Clear existing markers
-    markers.current.forEach((m) => m.remove?.())
-    markers.current = []
+  // Marcadores + línea + fitBounds
+  useEffect(() => {
+    const draw = () => {
+      if (!map.current) return
+      const maplibregl = (window as any).maplibregl
+      if (!maplibregl) return
 
-    const coords: [number, number][] = []
-    puntosOrdenados.forEach((p, idx) => {
-      const turno = tipo === 'ida' ? idx + 1 : totalIda + idx + 1
-      const marcha = obtenerPiezaPorTurno(marchas, turno)
+      if (!map.current.getSource('ruta-linea')) {
+        // Mapa aún no terminó de cargar
+        return false
+      }
 
-      coords.push([p.lng!, p.lat!])
+      markers.current.forEach((m) => m.remove?.())
+      markers.current = []
 
-      const el = document.createElement('div')
-      el.style.cssText = `
-        width: 28px;
-        height: 28px;
-        border-radius: 999px;
-        background: ${tipo === 'ida' ? '#7c3aed' : '#fbbf24'};
-        border: 3px solid ${tipo === 'ida' ? '#4c1d95' : '#92400e'};
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        font-weight: 700;
-        color: ${tipo === 'ida' ? 'white' : '#111827'};
-      `
-      el.textContent = String(turno)
+      const coords: [number, number][] = []
+      puntosOrdenados.forEach((p, idx) => {
+        const turno = tipo === 'ida' ? idx + 1 : totalIda + idx + 1
+        const piezas = obtenerPiezasPorTurno(marchas, turno)
+        coords.push([p.lng, p.lat])
 
-      const popupHtml = `
-        <div style="padding:8px; color:#111827; max-width:240px;">
-          <div style="font-weight:700;">Turno ${turno}</div>
-          <div style="margin-top:4px;">${p.direccion || 'Punto'}</div>
-          <div style="margin-top:6px; font-size:12px; color:#6b7280;">
-            Son/Alabado: ${marcha ? `${marcha.nombre}${marcha.autor ? ` — ${marcha.autor}` : ''}` : '—'}
+        const el = document.createElement('div')
+        el.style.cssText = `
+          width: 28px;
+          height: 28px;
+          border-radius: 999px;
+          background: ${tipo === 'ida' ? '#7c3aed' : '#fbbf24'};
+          border: 3px solid ${tipo === 'ida' ? '#4c1d95' : '#92400e'};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 700;
+          color: ${tipo === 'ida' ? 'white' : '#111827'};
+          box-shadow: 0 1px 4px rgba(0,0,0,.35);
+          cursor: pointer;
+        `
+        el.textContent = String(turno)
+
+        const piezasHtml = piezas.length
+          ? piezas
+              .map(
+                (m) =>
+                  `<div style="margin-top:4px;font-size:12px;"><strong>${m.nombre}</strong>${
+                    m.autor ? ` — ${m.autor}` : ''
+                  }</div>`,
+              )
+              .join('')
+          : '<div style="margin-top:4px;font-size:12px;color:#6b7280;">Sin marcha</div>'
+
+        const popupHtml = `
+          <div style="padding:8px; color:#111827; max-width:260px;">
+            <div style="font-weight:700; font-size:14px;">Turno ${turno}</div>
+            ${piezasHtml}
+            <div style="margin-top:8px; font-size:12px; color:#6b7280;">${p.direccion || ''}</div>
           </div>
-        </div>
-      `
+        `
 
-      const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([p.lng!, p.lat!])
-        .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(popupHtml))
-        .addTo(map.current)
+        const marker = new maplibregl.Marker({ element: el })
+          .setLngLat([p.lng, p.lat])
+          .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(popupHtml))
+          .addTo(map.current)
 
-      markers.current.push(marker)
-    })
-
-    const source = map.current.getSource('ruta-linea')
-    if (source?.setData) {
-      source.setData({
-        type: 'Feature',
-        properties: {},
-        geometry: { type: 'LineString', coordinates: coords },
+        markers.current.push(marker)
       })
+
+      const source = map.current.getSource('ruta-linea')
+      if (source?.setData) {
+        source.setData({
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: coords.length >= 2 ? coords : coords.length === 1 ? [...coords, ...coords] : [],
+          },
+        })
+      }
+
+      if (coords.length === 1) {
+        map.current.flyTo({ center: coords[0], zoom: 16 })
+      } else if (coords.length > 1) {
+        const bounds = coords.reduce(
+          (b, c) => b.extend(c),
+          new maplibregl.LngLatBounds(coords[0], coords[0]),
+        )
+        map.current.fitBounds(bounds, { padding: 48, maxZoom: 16, duration: 600 })
+      }
+
+      // Fix tamaño si el contenedor cambió
+      map.current.resize?.()
+      return true
+    }
+
+    if (draw()) return
+
+    const el = mapContainer.current
+    const onReady = () => {
+      draw()
+    }
+    el?.addEventListener('ruta-map-ready', onReady)
+
+    const poll = setInterval(() => {
+      if (draw()) clearInterval(poll)
+    }, 150)
+
+    return () => {
+      el?.removeEventListener('ruta-map-ready', onReady)
+      clearInterval(poll)
     }
   }, [marchas, puntosOrdenados, tipo, totalIda])
 
@@ -220,9 +315,10 @@ export function RutaMapEditor({
     <div className={`relative w-full ${heightClassName} rounded-lg overflow-hidden border border-border/50`}>
       <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
       <div className="absolute bottom-3 left-3 text-xs text-muted-foreground bg-background/80 backdrop-blur px-2 py-1 rounded">
-        Click en el mapa para añadir un punto ({tipo}). Se numera por orden.
+        {puntosOrdenados.length > 0
+          ? `${puntosOrdenados.length} puntos en mapa (${tipo})`
+          : `Click en el mapa para añadir un punto (${tipo})`}
       </div>
     </div>
   )
 }
-

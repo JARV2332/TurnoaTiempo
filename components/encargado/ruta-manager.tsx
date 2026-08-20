@@ -18,7 +18,7 @@ import { Plus, MapPin, GripVertical, Trash2, Navigation } from 'lucide-react'
 import type { Marcha, PuntoRuta } from '@/lib/types'
 import { RutaMapEditor } from './ruta-map-editor'
 import { ImportProgramaDialog } from '@/components/encargado/import-programa-dialog'
-import { obtenerPiezaPorTurno } from '@/lib/musica'
+import { obtenerPiezaPorTurno, obtenerPiezasPorTurno } from '@/lib/musica'
 
 interface RutaManagerProps {
   procesionId: string
@@ -210,7 +210,7 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
             <div className="space-y-2">
               <Label>Latitud</Label>
               <Input
-                placeholder="37.3891"
+                placeholder="14.640700"
                 value={newPunto.lat}
                 onChange={(e) => setNewPunto({ ...newPunto, lat: e.target.value })}
                 className="bg-input/50"
@@ -219,7 +219,7 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
             <div className="space-y-2">
               <Label>Longitud</Label>
               <Input
-                placeholder="-5.9845"
+                placeholder="-90.513300"
                 value={newPunto.lng}
                 onChange={(e) => setNewPunto({ ...newPunto, lng: e.target.value })}
                 className="bg-input/50"
@@ -270,23 +270,38 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
         <CardContent>
           {puntosIda.length > 0 ? (
             <div className="space-y-2">
-              {puntosIda.map((punto, index) => (
+              {puntosIda.map((punto, index) => {
+                const turno = index + 1
+                const piezas = obtenerPiezasPorTurno(marchas, turno)
+                return (
                 <div 
                   key={punto.id}
                   className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 group"
                 >
                   <GripVertical className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm font-medium text-primary w-6">{index + 1}.</span>
+                  <span className="text-sm font-bold text-primary w-8">T{turno}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{punto.direccion}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {punto.lat != null && punto.lng != null ? `${Number(punto.lat).toFixed(4)}, ${Number(punto.lng).toFixed(4)}` : ''}
-                    </p>
-                    {marchas.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Son/alabado sugerido: {obtenerPiezaPorTurno(marchas, index + 1)?.nombre || '—'}
-                      </p>
+                    <p className="font-medium">Turno {turno}</p>
+                    {piezas.length > 0 ? (
+                      piezas.map((pieza) => (
+                        <p key={pieza.id} className="text-sm truncate">
+                          {pieza.nombre}
+                          {pieza.autor ? (
+                            <span className="text-muted-foreground"> — {pieza.autor}</span>
+                          ) : null}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Sin marcha</p>
                     )}
+                    <p className="text-xs text-muted-foreground truncate mt-1">
+                      {punto.direccion}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {punto.lat != null && punto.lng != null
+                        ? `${Number(punto.lat).toFixed(5)}, ${Number(punto.lng).toFixed(5)}`
+                        : 'Sin GPS'}
+                    </p>
                   </div>
                   <Button
                     variant="ghost"
@@ -297,7 +312,8 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              ))}
+                )
+              })}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">
@@ -318,23 +334,38 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
         <CardContent>
           {puntosRegreso.length > 0 ? (
             <div className="space-y-2">
-              {puntosRegreso.map((punto, index) => (
+              {puntosRegreso.map((punto, index) => {
+                const turno = totalIda + index + 1
+                const piezas = obtenerPiezasPorTurno(marchas, turno)
+                return (
                 <div 
                   key={punto.id}
                   className="flex items-center gap-3 p-3 rounded-lg bg-secondary/5 group"
                 >
                   <GripVertical className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm font-medium text-secondary w-6">{index + 1}.</span>
+                  <span className="text-sm font-bold text-secondary w-8">T{turno}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{punto.direccion}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {punto.lat != null && punto.lng != null ? `${Number(punto.lat).toFixed(4)}, ${Number(punto.lng).toFixed(4)}` : ''}
-                    </p>
-                    {marchas.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Son/alabado sugerido: {obtenerPiezaPorTurno(marchas, totalIda + index + 1)?.nombre || '—'}
-                      </p>
+                    <p className="font-medium">Turno {turno}</p>
+                    {piezas.length > 0 ? (
+                      piezas.map((pieza) => (
+                        <p key={pieza.id} className="text-sm truncate">
+                          {pieza.nombre}
+                          {pieza.autor ? (
+                            <span className="text-muted-foreground"> — {pieza.autor}</span>
+                          ) : null}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Sin marcha</p>
                     )}
+                    <p className="text-xs text-muted-foreground truncate mt-1">
+                      {punto.direccion}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {punto.lat != null && punto.lng != null
+                        ? `${Number(punto.lat).toFixed(5)}, ${Number(punto.lng).toFixed(5)}`
+                        : 'Sin GPS'}
+                    </p>
                   </div>
                   <Button
                     variant="ghost"
@@ -345,7 +376,8 @@ export function RutaManager({ procesionId, initialPuntos, marchas }: RutaManager
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              ))}
+                )
+              })}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">
