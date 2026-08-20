@@ -185,6 +185,67 @@ export async function eliminarMarcha(marchaId: string, procesionId: string) {
   return { ok: true as const }
 }
 
+export async function eliminarTodasMarchas(procesionId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false as const, error: 'No autenticado' }
+
+  const { error } = await supabase.from('marchas').delete().eq('procesion_id', procesionId)
+  if (error) return { ok: false as const, error: error.message }
+  revalidateEncargado(procesionId)
+  return { ok: true as const }
+}
+
+export async function limpiarProgramaProcesion(procesionId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false as const, error: 'No autenticado' }
+
+  const [{ error: delMarchas }, { error: delPuntos }] = await Promise.all([
+    supabase.from('marchas').delete().eq('procesion_id', procesionId),
+    supabase.from('puntos_ruta').delete().eq('procesion_id', procesionId),
+  ])
+  if (delMarchas) return { ok: false as const, error: delMarchas.message }
+  if (delPuntos) return { ok: false as const, error: delPuntos.message }
+
+  const { error: procError } = await supabase
+    .from('procesiones')
+    .update({
+      total_turnos: 1,
+      turno_actual: 1,
+      marcha_actual: null,
+    })
+    .eq('id', procesionId)
+  if (procError) return { ok: false as const, error: procError.message }
+
+  revalidateEncargado(procesionId)
+  return { ok: true as const }
+}
+
+export async function eliminarTodosPuntosRuta(procesionId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false as const, error: 'No autenticado' }
+
+  const { error } = await supabase.from('puntos_ruta').delete().eq('procesion_id', procesionId)
+  if (error) return { ok: false as const, error: error.message }
+
+  const { error: procError } = await supabase
+    .from('procesiones')
+    .update({ total_turnos: 1, turno_actual: 1 })
+    .eq('id', procesionId)
+  if (procError) return { ok: false as const, error: procError.message }
+
+  revalidateEncargado(procesionId)
+  return { ok: true as const }
+}
+
 export async function actualizarOrdenMarchas(
   procesionId: string,
   ordenPorId: { id: string; orden: number }[],

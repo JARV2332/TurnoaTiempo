@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import {
   insertarMarcha,
   eliminarMarcha,
+  eliminarTodasMarchas,
+  limpiarProgramaProcesion,
 } from '@/app/encargado/procesiones/data-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,8 +19,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Music, Trash2 } from 'lucide-react'
+import { Plus, Music, Trash2, Loader2 } from 'lucide-react'
 import { ImportMarchasDialog } from '@/components/encargado/import-marchas-dialog'
 import { ImportProgramaDialog } from '@/components/encargado/import-programa-dialog'
 import type { Marcha } from '@/lib/types'
@@ -40,6 +53,7 @@ export function MarchasManager({
   const [marchas, setMarchas] = useState<Marcha[]>(initialMarchas)
   const [newMarcha, setNewMarcha] = useState({ nombres: '', autor: '', turnoInicial: '1' })
   const [isLoading, setIsLoading] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
 
   useEffect(() => {
     setMarchas(initialMarchas)
@@ -93,6 +107,22 @@ export function MarchasManager({
     router.refresh()
   }
 
+  const handleEliminarTodasMarchas = async () => {
+    setIsClearing(true)
+    const res = await eliminarTodasMarchas(procesionId)
+    if (res.ok) setMarchas([])
+    setIsClearing(false)
+    router.refresh()
+  }
+
+  const handleLimpiarTodo = async () => {
+    setIsClearing(true)
+    const res = await limpiarProgramaProcesion(procesionId)
+    if (res.ok) setMarchas([])
+    setIsClearing(false)
+    router.refresh()
+  }
+
   return (
     <div className="space-y-4">
       <Card className="glass-card">
@@ -109,12 +139,77 @@ export function MarchasManager({
           <div className="flex flex-wrap justify-end gap-2">
             <ImportProgramaDialog
               procesionId={procesionId}
-              hasExistingData={marchas.length > 0}
+              hasExistingData={marchas.length > 0 || turnosRuta.length > 0}
             />
             <ImportMarchasDialog procesionId={procesionId} existingCount={marchas.length} />
           </div>
 
-          {/* Add new items in bulk */}
+          {(marchas.length > 0 || turnosRuta.length > 0) && (
+            <div className="flex flex-wrap gap-2 rounded-md border border-destructive/20 bg-destructive/5 p-3">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isClearing || marchas.length === 0}
+                    className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                  >
+                    {isClearing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="mr-2 h-4 w-4" />
+                    )}
+                    Borrar todos los sones ({marchas.length})
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Borrar todos los sones y alabados?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Se eliminarán las {marchas.length} piezas de esta procesión. La ruta/turnos se
+                      mantienen.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleEliminarTodasMarchas}>
+                      Sí, borrar sones
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="destructive" size="sm" disabled={isClearing}>
+                    {isClearing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="mr-2 h-4 w-4" />
+                    )}
+                    Borrar todo (sones + ruta)
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Borrar el programa completo?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Se eliminarán todos los sones/alabados y todos los puntos de ruta/turnos de
+                      esta procesión. Luego puedes volver a subir el archivo correcto.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleLimpiarTodo}>
+                      Sí, borrar todo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-2 sm:col-span-2">
               <Label>Nombres (uno por línea)</Label>
@@ -150,7 +245,8 @@ export function MarchasManager({
                   <SelectContent>
                     {turnosDisponibles.map((item) => (
                       <SelectItem key={item.turno} value={String(item.turno)}>
-                        Turno {item.turno}{item.direccion ? ` — ${item.direccion}` : ''}
+                        Turno {item.turno}
+                        {item.direccion ? ` — ${item.direccion}` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -167,7 +263,6 @@ export function MarchasManager({
             </div>
           </div>
 
-          {/* Items list */}
           {marchas.length > 0 ? (
             <div className="space-y-2">
               {marchas.map((marcha, index) => (
