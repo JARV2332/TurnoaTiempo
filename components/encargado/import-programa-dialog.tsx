@@ -154,7 +154,9 @@ export function ImportProgramaDialog({
               {fileName ? `Archivo: ${fileName}` : 'Elegir archivo'}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Archivo listo en Descargas: <code>PROGRAMA-ASUNCION-LISTO-PARA-SUBIR.tsv</code>
+              Archivos listos en Descargas:{' '}
+              <code>PROGRAMA-ASUNCION-LISTO-PARA-SUBIR.tsv</code> o{' '}
+              <code>RUTA-RECOLECCION-CATEDRAL-Z1.tsv</code>
             </p>
             {fileName && resumen.turnos > 0 && (
               <Button
