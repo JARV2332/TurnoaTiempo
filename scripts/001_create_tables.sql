@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS hermandades (
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
+  nombre TEXT,
   role TEXT NOT NULL CHECK (role IN ('superadmin', 'encargado')),
   hermandad_id UUID REFERENCES hermandades(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now()

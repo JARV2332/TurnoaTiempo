@@ -9,6 +9,7 @@ export interface Hermandad {
 export interface Profile {
   id: string
   email: string
+  nombre: string | null
   role: 'superadmin' | 'encargado'
   hermandad_id: string | null
   created_at: string

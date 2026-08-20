@@ -28,6 +28,7 @@ export function UsuarioForm({ usuario, hermandades, isNewUser = false }: Usuario
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [nombre, setNombre] = useState(usuario?.nombre || '')
   const [role, setRole] = useState(usuario?.role || 'encargado')
   const [hermandadId, setHermandadId] = useState<string>(usuario?.hermandad_id || '')
 
@@ -37,11 +38,10 @@ export function UsuarioForm({ usuario, hermandades, isNewUser = false }: Usuario
     setError(null)
 
     const formData = new FormData(e.currentTarget)
+    const nombreTrim = (formData.get('nombre') as string)?.trim() || null
 
     try {
       if (isNewUser) {
-        // signUp debe ir en el cliente: si se hace en el servidor con la sesión del admin,
-        // Supabase puede sustituir la sesión por la del usuario recién creado.
         const email = formData.get('email') as string
         const password = formData.get('password') as string
         const supabase = createClient()
@@ -49,7 +49,12 @@ export function UsuarioForm({ usuario, hermandades, isNewUser = false }: Usuario
           email,
           password,
           options: {
-            data: { role, hermandad_id: hermandadId || null },
+            data: {
+              role,
+              hermandad_id: hermandadId || null,
+              nombre: nombreTrim,
+              nombre_completo: nombreTrim,
+            },
             emailRedirectTo: getAuthEmailRedirectUrl(),
           },
         })
@@ -58,6 +63,7 @@ export function UsuarioForm({ usuario, hermandades, isNewUser = false }: Usuario
           const { error: profileError } = await supabase.from('profiles').upsert({
             id: authData.user.id,
             email,
+            nombre: nombreTrim,
             role,
             hermandad_id: hermandadId || null,
           })
@@ -66,6 +72,7 @@ export function UsuarioForm({ usuario, hermandades, isNewUser = false }: Usuario
       } else if (usuario) {
         const res = await actualizarPerfilUsuario({
           userId: usuario.id,
+          nombre: nombreTrim,
           role: role as 'superadmin' | 'encargado',
           hermandad_id: hermandadId || null,
         })
@@ -91,8 +98,20 @@ export function UsuarioForm({ usuario, hermandades, isNewUser = false }: Usuario
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Email - only for new users */}
-          {isNewUser && (
+          <div className="space-y-2">
+            <Label htmlFor="nombre">Nombre completo *</Label>
+            <Input
+              id="nombre"
+              name="nombre"
+              required
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="Ej: Juan Pérez"
+              className="bg-input/50"
+            />
+          </div>
+
+          {isNewUser ? (
             <div className="space-y-2">
               <Label htmlFor="email">Correo electrónico *</Label>
               <Input
@@ -104,9 +123,20 @@ export function UsuarioForm({ usuario, hermandades, isNewUser = false }: Usuario
                 className="bg-input/50"
               />
             </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Correo electrónico</Label>
+              <Input
+                value={usuario?.email || ''}
+                disabled
+                className="bg-muted/50"
+              />
+              <p className="text-xs text-muted-foreground">
+                El correo no se puede cambiar desde aquí.
+              </p>
+            </div>
           )}
 
-          {/* Password - only for new users */}
           {isNewUser && (
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña *</Label>
@@ -122,7 +152,6 @@ export function UsuarioForm({ usuario, hermandades, isNewUser = false }: Usuario
             </div>
           )}
 
-          {/* Role */}
           <div className="space-y-2">
             <Label htmlFor="role">Rol *</Label>
             <Select value={role} onValueChange={setRole}>
@@ -135,13 +164,12 @@ export function UsuarioForm({ usuario, hermandades, isNewUser = false }: Usuario
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {role === 'superadmin' 
-                ? 'Acceso completo al sistema' 
+              {role === 'superadmin'
+                ? 'Acceso completo al sistema'
                 : 'Gestión de procesiones de su hermandad'}
             </p>
           </div>
 
-          {/* Hermandad - only for encargado */}
           {role === 'encargado' && (
             <div className="space-y-2">
               <Label htmlFor="hermandad">Hermandad</Label>

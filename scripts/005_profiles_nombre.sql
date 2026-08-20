@@ -1,6 +1,8 @@
--- Crear perfil en public.profiles cuando un usuario se registra en auth.users
--- Necesario para que el registro público (/auth/registro) funcione y el usuario tenga rol
+-- Nombre visible en perfiles de usuario
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS nombre TEXT;
 
+-- Guardar nombre desde metadata al crear usuario
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -23,9 +25,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger: al insertar en auth.users, crear fila en profiles
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_new_user();
+-- Rellenar nombres existentes desde auth.users metadata cuando falte
+UPDATE public.profiles p
+SET nombre = NULLIF(trim(COALESCE(
+  u.raw_user_meta_data->>'nombre',
+  u.raw_user_meta_data->>'nombre_completo',
+  ''
+)), '')
+FROM auth.users u
+WHERE u.id = p.id
+  AND (p.nombre IS NULL OR trim(p.nombre) = '')
+  AND NULLIF(trim(COALESCE(
+    u.raw_user_meta_data->>'nombre',
+    u.raw_user_meta_data->>'nombre_completo',
+    ''
+  )), '') IS NOT NULL;

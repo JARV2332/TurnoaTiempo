@@ -52,6 +52,7 @@ export default function RegistroPage() {
           emailRedirectTo: getAuthEmailRedirectUrl(),
           data: {
             nombre_completo: nombre,
+            nombre: nombre,
             rol: 'encargado',
           },
         },

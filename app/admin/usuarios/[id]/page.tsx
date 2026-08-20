@@ -33,7 +33,7 @@ export default async function EditUsuarioPage({
         </Link>
         <h1 className="text-2xl font-bold">Editar Usuario</h1>
         <p className="text-muted-foreground">
-          Modifica los datos de {usuario.nombre || 'este usuario'}
+          Modifica los datos de {usuario.nombre || usuario.email || 'este usuario'}
         </p>
       </div>
       

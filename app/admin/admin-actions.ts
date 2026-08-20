@@ -14,6 +14,7 @@ function revalidateAdmin() {
 
 export async function actualizarPerfilUsuario(input: {
   userId: string
+  nombre: string | null
   role: 'superadmin' | 'encargado'
   hermandad_id: string | null
 }) {
@@ -26,6 +27,7 @@ export async function actualizarPerfilUsuario(input: {
   const { error } = await supabase
     .from('profiles')
     .update({
+      nombre: input.nombre,
       role: input.role,
       hermandad_id: input.hermandad_id,
     })

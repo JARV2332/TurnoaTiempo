@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS hermandades (
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
+  nombre TEXT,
   role TEXT NOT NULL CHECK (role IN ('superadmin', 'encargado')),
   hermandad_id UUID REFERENCES hermandades(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -226,14 +227,21 @@ CREATE TRIGGER profiles_trim_role
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, role, hermandad_id)
+  INSERT INTO public.profiles (id, email, nombre, role, hermandad_id)
   VALUES (
     NEW.id,
     NEW.email,
+    NULLIF(trim(COALESCE(
+      NEW.raw_user_meta_data->>'nombre',
+      NEW.raw_user_meta_data->>'nombre_completo',
+      ''
+    )), ''),
     COALESCE(NEW.raw_user_meta_data->>'role', NEW.raw_user_meta_data->>'rol', 'encargado'),
     (NEW.raw_user_meta_data->>'hermandad_id')::uuid
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    nombre = COALESCE(EXCLUDED.nombre, profiles.nombre);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
