@@ -1,4 +1,7 @@
-export type InformeSlug = 'virgen-del-socorro-catedral-2026' | 'virgen-del-carmen-santuario-2026'
+export type InformeSlug =
+  | 'virgen-dolores-visita-2026'
+  | 'virgen-del-socorro-catedral-2026'
+  | 'virgen-del-carmen-santuario-2026'
 
 export type InformeListItem = {
   slug: InformeSlug

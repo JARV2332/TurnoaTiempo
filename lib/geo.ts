@@ -27,22 +27,39 @@ export type LatLng = { lat: number; lng: number }
 /**
  * Une dos puntos en forma de L para no cortar manzanas en diagonal.
  * Elige primero el eje con mayor desplazamiento (más natural en cuadrícula).
+ * Si el desvíe del eje menor es mínimo (< ~22 m), traza recto: las calles
+ * reales no son perfectamente ortogonales y un codo artificial se ve peor.
  */
 export function segmentoManhattan(
   a: LatLng,
   b: LatLng,
   preferLngFirst?: boolean,
 ): [number, number][] {
-  const sameLat = Math.abs(a.lat - b.lat) < 1e-6
-  const sameLng = Math.abs(a.lng - b.lng) < 1e-6
+  const dLat = Math.abs(a.lat - b.lat)
+  const dLng = Math.abs(a.lng - b.lng)
+  const sameLat = dLat < 1e-6
+  const sameLng = dLng < 1e-6
   if (sameLat || sameLng) {
     return [
       [a.lng, a.lat],
       [b.lng, b.lat],
     ]
   }
-  const lngFirst =
-    preferLngFirst ?? Math.abs(a.lng - b.lng) >= Math.abs(a.lat - b.lat)
+
+  const metrosLat = dLat * 111320
+  const metrosLng =
+    dLng * 111320 * Math.cos((a.lat * Math.PI) / 180)
+  const menor = Math.min(metrosLat, metrosLng)
+  const mayor = Math.max(metrosLat, metrosLng)
+  // Drift de calle real (p.ej. 3a Calle): no inventar esquina
+  if (menor < 22 || menor / mayor < 0.28) {
+    return [
+      [a.lng, a.lat],
+      [b.lng, b.lat],
+    ]
+  }
+
+  const lngFirst = preferLngFirst ?? metrosLng >= metrosLat
   if (lngFirst) {
     return [
       [a.lng, a.lat],
@@ -64,7 +81,9 @@ export function lineaManhattan(puntos: LatLng[]): [number, number][] {
 
   const out: [number, number][] = []
   for (let i = 0; i < puntos.length - 1; i++) {
-    const seg = segmentoManhattan(puntos[i], puntos[i + 1], true)
+    // Elegir el codo según el eje dominante: evita cortar manzanas
+    // (p.ej. bajar primero a la calle y luego cruzar la avenida).
+    const seg = segmentoManhattan(puntos[i], puntos[i + 1])
     if (i === 0) out.push(seg[0])
     for (let j = 1; j < seg.length; j++) out.push(seg[j])
   }
@@ -77,7 +96,7 @@ export function lineaManhattan(puntos: LatLng[]): [number, number][] {
  */
 export function separarMarcadoresCercanos(
   puntos: LatLng[],
-  minMetros = 28,
+  minMetros = 14,
 ): LatLng[] {
   if (puntos.length === 0) return []
   const out: LatLng[] = [{ ...puntos[0] }]
