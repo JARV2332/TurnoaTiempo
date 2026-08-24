@@ -53,7 +53,7 @@ export const informeVirgenDoloresVisitaDetail: InformeDetail = {
     sectionTitle: 'Fuentes de tráfico y dispositivos',
     chartTitle: 'Origen del tráfico (visitantes)',
     rows: [
-      { name: 'lm.facebook.com', value: 1,090, color: '#1877f2' },
+      { name: 'lm.facebook.com', value: 1090, color: '#1877f2' },
       { name: 'facebook.com', value: 350, color: '#4267B2' },
       { name: 'm.facebook.com', value: 175, color: '#3b5998' },
       { name: 'l.facebook.com', value: 95, color: '#8b9dc3' },
