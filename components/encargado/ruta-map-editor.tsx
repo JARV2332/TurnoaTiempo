@@ -51,14 +51,14 @@ export function RutaMapEditor({
   const tiles =
     resolvedTheme === 'light'
       ? [
-          `https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png${keyParam}`,
-          `https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png${keyParam}`,
-          `https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png${keyParam}`,
+          `https://a.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png${keyParam}`,
+          `https://b.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png${keyParam}`,
+          `https://c.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png${keyParam}`,
         ]
       : [
-          `https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png${keyParam}`,
-          `https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png${keyParam}`,
-          `https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png${keyParam}`,
+          `https://a.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png${keyParam}`,
+          `https://b.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png${keyParam}`,
+          `https://c.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png${keyParam}`,
         ]
 
   const puntosOrdenados = useMemo(() => {
