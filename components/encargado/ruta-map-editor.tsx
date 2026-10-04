@@ -45,17 +45,20 @@ export function RutaMapEditor({
     onMapClickRef.current = onMapClick
   }, [onMapClick])
 
+  const cartoKey = process.env.NEXT_PUBLIC_CARTO_API_KEY
+  const keyParam = cartoKey ? `?key=${cartoKey}` : ''
+
   const tiles =
     resolvedTheme === 'light'
       ? [
-          'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-          'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-          'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+          `https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png${keyParam}`,
+          `https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png${keyParam}`,
+          `https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png${keyParam}`,
         ]
       : [
-          'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-          'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-          'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+          `https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png${keyParam}`,
+          `https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png${keyParam}`,
+          `https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png${keyParam}`,
         ]
 
   const puntosOrdenados = useMemo(() => {
